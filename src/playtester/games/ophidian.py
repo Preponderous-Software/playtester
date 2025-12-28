@@ -29,19 +29,21 @@ from ..ai_decision_engine import AIDecisionEngine, GameAction, MockedAIDecisionE
 from ..action_executor import ActionExecutor, MockedActionExecutor
 
 
-class OphidianGameAction(GameAction):
-    """
-    Ophidian-specific game actions.
-    
-    These should be defined based on actual Ophidian game mechanics.
-    Current values are placeholders.
-    """
-    # Placeholder actions - should be defined based on actual game
-    SELECT_UNIT = 10
-    ATTACK_TARGET = 11
-    DEFEND_POSITION = 12
-    USE_ABILITY = 13
-    END_TURN = 14
+# Note: Python enums cannot be extended. For game-specific actions beyond the base GameAction enum,
+# you can either:
+# 1. Use the base GameAction values and map them to game-specific meanings
+# 2. Create a completely separate enum (shown below for reference)
+# 3. Use integer values 10+ as custom actions in your action mapping
+
+# Example of game-specific actions (not currently used, but here for reference):
+# SELECT_UNIT = 10
+# ATTACK_TARGET = 11
+# DEFEND_POSITION = 12
+# USE_ABILITY = 13
+# END_TURN = 14
+#
+# These can be used by creating a custom executor that handles these integer values
+# or by mapping them to the base GameAction enum values.
 
 
 class OphidianAIEngine(MockedAIDecisionEngine):

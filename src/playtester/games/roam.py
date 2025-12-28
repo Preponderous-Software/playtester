@@ -29,19 +29,21 @@ from ..ai_decision_engine import AIDecisionEngine, GameAction, MockedAIDecisionE
 from ..action_executor import ActionExecutor, MockedActionExecutor
 
 
-class RoamGameAction(GameAction):
-    """
-    Roam-specific game actions.
-    
-    These should be defined based on actual Roam game mechanics.
-    Current values are placeholders.
-    """
-    # Placeholder actions - should be defined based on actual game
-    EXPLORE = 10
-    INTERACT = 11
-    COLLECT_ITEM = 12
-    USE_ITEM = 13
-    NAVIGATE_MAP = 14
+# Note: Python enums cannot be extended. For game-specific actions beyond the base GameAction enum,
+# you can either:
+# 1. Use the base GameAction values and map them to game-specific meanings
+# 2. Create a completely separate enum (shown below for reference)
+# 3. Use integer values 10+ as custom actions in your action mapping
+
+# Example of game-specific actions (not currently used, but here for reference):
+# EXPLORE = 10
+# INTERACT = 11
+# COLLECT_ITEM = 12
+# USE_ITEM = 13
+# NAVIGATE_MAP = 14
+#
+# These can be used by creating a custom executor that handles these integer values
+# or by mapping them to the base GameAction enum values.
 
 
 class RoamAIEngine(MockedAIDecisionEngine):
