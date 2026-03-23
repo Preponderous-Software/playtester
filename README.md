@@ -2,33 +2,57 @@
 
 An open-source Python framework for automating game play through AI-powered decision making based on visual game state analysis.
 
-## Overview
+## Description
 
-Playtester enables automated gameplay by:
-1. Capturing screenshots of game applications
-2. Feeding screenshots to an AI decision engine
-3. Having the AI make enumerated decisions corresponding to game actions
-4. Executing those actions in the game
+Playtester is a Python framework that enables automated gameplay by capturing screenshots of game applications, feeding them to an AI decision engine, and executing corresponding actions. The system uses a modular architecture with enumerated game actions, making it easy to extend for different games and AI models.
 
-The system is designed with a modular architecture that supports multiple games and can be extended with custom implementations.
+The framework currently provides a complete working implementation with mocked AI components and comprehensive documentation for integrating open-source vision-language models such as LLaVA, CLIP, MiniGPT-4, or OpenFlamingo.
 
-## Quick Start
+## Installation
 
-### Installation
+### First Time Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/dmccoystephenson/playtester.git
+   cd playtester
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Install the package:
+   ```bash
+   pip install -e .
+   ```
+
+### Requirements
+
+- Python 3.8 or higher
+- A graphical desktop environment (X11, Wayland, Windows, or macOS)
+- The game you want to automate
+
+## Usage
+
+### Documentation
+
+- [User Guide](USER_GUIDE.md) – Getting started and common scenarios
+- [API Reference](docs/API_REFERENCE.md) – Complete API documentation
+- [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) – Roadmap for AI integration
+- [Architecture](docs/ARCHITECTURE.md) – System design diagrams
+
+### Quick Start
+
+Run the basic example:
 
 ```bash
-# Clone the repository
-git clone https://github.com/dmccoystephenson/playtester.git
-cd playtester
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install the package
-pip install -e .
+cd examples
+python basic_example.py
 ```
 
-### Basic Usage
+### Game-Specific Automation
 
 ```python
 from playtester.games import OphidianAutomator
@@ -38,25 +62,135 @@ automator = OphidianAutomator(save_screenshots=True)
 automator.start(max_cycles=10)
 ```
 
-### Run Examples
+### Custom Automation
+
+```python
+from playtester import GameAutomator, ScreenshotCapture
+from playtester.ai_decision_engine import MockedAIDecisionEngine, GameAction
+from playtester.action_executor import KeyboardActionExecutor
+
+capture = ScreenshotCapture()
+engine = MockedAIDecisionEngine([GameAction.MOVE_UP, GameAction.ACTION_PRIMARY])
+executor = KeyboardActionExecutor()
+
+automator = GameAutomator(capture, engine, executor)
+for cycle in automator.run_continuous(max_cycles=20):
+    print(f"{cycle['action'].name} (confidence: {cycle['confidence']:.2f})")
+```
+
+## Support
+
+### Experiencing a bug?
+
+Please file a bug report [here](https://github.com/dmccoystephenson/playtester/issues/new).
+
+- [Known Issues](https://github.com/dmccoystephenson/playtester/issues)
+
+### Questions?
+
+- [GitHub Discussions](https://github.com/dmccoystephenson/playtester/discussions)
+- [Documentation](docs/README.md)
+
+## Contributing
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) – How to contribute to this project
+- [GitHub Issues](https://github.com/dmccoystephenson/playtester/issues) – Find something to work on
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed information on how to contribute to this project.
+
+## Testing
+
+### Syntax Verification
+
+Linux / macOS:
+
+```bash
+python -m py_compile src/playtester/*.py src/playtester/games/*.py examples/*.py
+```
+
+Windows:
+
+```cmd
+python -m py_compile src/playtester/*.py src/playtester/games/*.py examples/*.py
+```
+
+If all files compile without errors, the syntax is valid.
+
+### Manual Testing
+
+Run the example scripts (requires a display environment):
 
 ```bash
 cd examples
-python basic_example.py      # Basic automation demo
-python ophidian_example.py   # Ophidian game automation
-python roam_example.py       # Roam game automation
+python basic_example.py
+python ophidian_example.py
+python roam_example.py
 ```
 
-## Architecture
+## Development
 
-The system consists of four main components:
+### Technology Stack
 
-1. **Screenshot Capture** - Captures game screen for analysis
-2. **AI Decision Engine** - Analyzes screenshots and decides actions (currently mocked)
-3. **Action Executor** - Executes decided actions via keyboard/mouse
-4. **Game Automator** - Orchestrates the automation loop
+- **Language**: Python 3.8+
+- **Dependencies**: pillow, pyautogui, pynput
+- **Package Manager**: pip
+- **Build Tool**: setuptools
 
-## Current Status
+### Project Structure
+
+```
+playtester/
+├── src/playtester/          # Main package
+│   ├── screenshot_capture.py
+│   ├── ai_decision_engine.py
+│   ├── action_executor.py
+│   ├── game_automator.py
+│   └── games/               # Game-specific implementations
+├── examples/                # Example scripts
+├── docs/                    # Documentation
+└── tests/                   # Tests (future)
+```
+
+### Development Workflow
+
+1. Fork and clone the repository
+2. Create a feature branch
+3. Make your changes
+4. Test your changes
+5. Submit a pull request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions.
+
+## Authors and Acknowledgement
+
+### Developers
+
+| Name | Main Contributions |
+|------|-------------------|
+| dmccoystephenson | Project creator, initial implementation |
+| GitHub Copilot | Code assistance and framework development |
+
+### Project Origin
+
+Playtester was created to provide an open-source framework for automating gameplay through AI-driven decision making. The project aims to make game automation accessible and extensible for researchers, developers, and enthusiasts.
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0).
+
+You are free to use, modify, and distribute this software, provided that:
+
+- Source code is made available under the same license when distributed.
+- Changes are documented and attributed.
+- No additional restrictions are applied.
+
+See the [LICENSE](LICENSE) file for the full text of the GPL-3.0 license.
+
+## Project Status
+
+This project is in active development.
+
+### Current Status
 
 ✅ **Implemented:**
 - Core architecture and automation loop
@@ -64,55 +198,15 @@ The system consists of four main components:
 - Action execution framework
 - Game-specific templates (Ophidian, Roam)
 
-🚧 **Mocked (needs implementation):**
-- AI decision engine (documented for open-source AI integration)
+🚧 **In Progress:**
+- AI decision engine integration with open-source models
 - Game-specific UI detection
-- Action verification
+- Comprehensive test suite
 
-See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for detailed implementation roadmap.
+See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the roadmap.
 
-## Documentation
+### Supported Games
 
-- [Full Documentation](docs/README.md) - Complete usage guide
-- [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) - Roadmap and desired behavior
-- [API Reference](docs/API_REFERENCE.md) - Detailed API documentation
-
-## Supported Games
-
-- **Ophidian** - Game-specific automator with mocked implementation
-- **Roam** - Game-specific automator with mocked implementation
-- **Custom Games** - Framework for creating your own automators
-
-## Features
-
-- 🎮 Modular architecture for easy game addition
-- 🤖 AI-driven decision making (framework ready for model integration)
-- 📸 Screenshot capture with debug logging
-- ⌨️ Keyboard and mouse input automation
-- 🔧 Extensible design for custom implementations
-- 📚 Comprehensive documentation
-
-## Dependencies
-
-- Python 3.8+
-- pillow - Image processing
-- pyautogui - Screen capture and input
-- pynput - Advanced input control
-
-## Contributing
-
-Contributions are welcome! Areas needing implementation:
-- Integration with open-source vision-language models (LLaVA, CLIP, etc.)
-- Game-specific implementations for Ophidian and Roam
-- Window management and action verification
-- Additional game automators
-
-## License
-
-Open source - see LICENSE file for details.
-
-## Support
-
-For issues, questions, or contributions:
-- GitHub Issues: https://github.com/dmccoystephenson/playtester/issues
-- Documentation: [docs/README.md](docs/README.md)
+- **Ophidian** – Game-specific automator with mocked implementation
+- **Roam** – Game-specific automator with mocked implementation
+- **Custom Games** – Framework for creating your own automators
