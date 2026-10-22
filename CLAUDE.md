@@ -14,7 +14,7 @@ integrating a real vision-language model is roadmap work described in
 - Python >= 3.8 (`setup.py` `python_requires`; CI pins 3.8)
 - `pillow>=10.0.0`, `pyautogui>=0.9.54`, `pynput>=1.7.6` (`requirements.txt`, mirrored in `setup.py` `install_requires`)
 - setuptools, `src/` layout (`package_dir={"": "src"}`)
-- GitHub Actions: `.github/workflows/build.yml` (push to main/develop/copilot/**, PRs to main/develop), `.github/workflows/release.yml` (on release created, `python -m build`)
+- GitHub Actions: `.github/workflows/build.yml` (job `test`; push to main, every PR), `.github/workflows/release.yml` (on release created, `python -m build`)
 
 ## Build and run commands
 
@@ -32,18 +32,19 @@ On this machine bare `python` is Python 2; use `python3` (3.8) explicitly.
 ## Test commands
 
 There is no automated test suite (no `tests/`, no pytest config). The checks
-CI runs are:
+CI runs are (the last two under `xvfb-run`):
 
 ```bash
 python3 -m py_compile src/playtester/*.py src/playtester/games/*.py examples/*.py
 python3 -c "import playtester; print('Playtester imported successfully')"
+python3 ci/smoke_test.py
 ```
 
-**Headless caveat:** `import playtester` imports `pyautogui`, whose
-`mouseinfo` dependency reads `os.environ['DISPLAY']` at import time. Without a
-display the import fails with `KeyError: 'DISPLAY'`. This is why the Build
-workflow's "Verify installation" step currently fails on `main` (GitHub's
-`ubuntu-latest` runner has no display). `py_compile` works headless.
+**Headless:** `import playtester` imports `pyautogui`, whose `mouseinfo`
+dependency reads `os.environ['DISPLAY']` at import time, so it needs a display.
+CI (job `test` in `build.yml`) installs `xvfb`, `xauth` and `scrot` and runs the
+import check and `ci/smoke_test.py` under `xvfb-run` with
+`XDG_SESSION_TYPE=x11`. Run them locally the same way; `py_compile` works headless.
 
 `CONTRIBUTING.md` documents a manual headless check that imports the
 submodules directly (`playtester.ai_decision_engine`, `playtester.action_executor`)
