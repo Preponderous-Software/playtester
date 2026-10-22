@@ -1,5 +1,10 @@
 # User Guide
 
+> **Scope:** this document covers the screenshot-driven **automation framework** (`GameAutomator`).
+> For the **agent playtest kit** (the `pt` command, game profiles, the probe contract and report aggregation),
+> see [docs/AGENT_PLAYTESTING.md](docs/AGENT_PLAYTESTING.md), [docs/PROFILES.md](docs/PROFILES.md) and
+> [docs/PROBE_CONTRACT.md](docs/PROBE_CONTRACT.md).
+
 This guide will help you get started with Playtester and understand how to use it for automating gameplay.
 
 ## Prerequisites
