@@ -1,0 +1,194 @@
+{
+  "name": "kindling",
+  "title": "Kindling",
+  "description": "a cozy first-person homestead game on Strata: restore an abandoned cabin (clear, repair, furnish) and kindle its hearth before its new settler arrives",
+  "repository": "Preponderous-Software/kindling",
+  "build": {
+    "command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --target kindling -j4",
+    "requires": [
+      "cmake",
+      "c++"
+    ]
+  },
+  "launch": {
+    "command": [
+      "{game_dir}/build/kindling"
+    ],
+    "args": [
+      "--width",
+      "{width}",
+      "--height",
+      "{height}",
+      "--slot",
+      "{data_dir}"
+    ],
+    "cwd": "{session_dir}",
+    "seed_args": [
+      "--seed",
+      "{seed}"
+    ],
+    "start_timeout_sec": 60,
+    "settle_sec": 2,
+    "lp_threads": 4
+  },
+  "window": {
+    "title_regex": "^Kindling$",
+    "width": 640,
+    "height": 360
+  },
+  "probe": {
+    "flag": "--playtest-out",
+    "ticks_per_second": 30,
+    "world_screens": [
+      "WORLD"
+    ],
+    "screens": [
+      "WORLD",
+      "REVEAL"
+    ],
+    "since": "commit d47730f (Kindling's --playtest-out)"
+  },
+  "movement": {
+    "turn": {
+      "method": "keys",
+      "left": "Left",
+      "right": "Right",
+      "degrees_per_second": 90
+    },
+    "yaw_increases": "right",
+    "forward_key": "w",
+    "speed_field": "speed",
+    "default_speed": 2.6,
+    "interact_key": "e",
+    "interact_range": 2.2,
+    "stop_distance": 1.6,
+    "face_tolerance": 5,
+    "nearest_kinds": [
+      "door",
+      "wagon",
+      "hearth",
+      "window",
+      "chopping_block",
+      "mare",
+      "debris"
+    ]
+  },
+  "crash_patterns": [
+    "kindling: .*(error|failed).*",
+    "Segmentation fault",
+    "terminate called"
+  ],
+  "process_name": "build/kindling",
+  "agent_notes": "kindling.md",
+  "cheats": "Do not use `--autopilot`, `--tour` or `--speed` unless your goal says so.",
+  "smoke": {
+    "description": "Into the yard, hide the help, walk through the door to the hearth, then look around with the arrow keys (from straight down up to the ceiling, turning a little each time) until the Survey step completes",
+    "seed": 1881,
+    "steps": [
+      [
+        "await",
+        "WORLD",
+        "30"
+      ],
+      [
+        "shot",
+        "01-yard"
+      ],
+      [
+        "key",
+        "F1"
+      ],
+      [
+        "walkto",
+        "door",
+        "40"
+      ],
+      [
+        "hold",
+        "w",
+        "1.5"
+      ],
+      [
+        "walkto",
+        "hearth",
+        "40"
+      ],
+      [
+        "shot",
+        "02-hearth"
+      ]
+    ],
+    "until": {
+      "event": {
+        "type": "objective_completed",
+        "title": "Survey"
+      },
+      "attempts": 24,
+      "steps": [
+        [
+          "hold",
+          "Down",
+          "2"
+        ],
+        [
+          "hold",
+          "Up",
+          "0.45"
+        ],
+        [
+          "wait",
+          "0.3"
+        ],
+        [
+          "hold",
+          "Up",
+          "0.3"
+        ],
+        [
+          "wait",
+          "0.3"
+        ],
+        [
+          "hold",
+          "Up",
+          "0.3"
+        ],
+        [
+          "wait",
+          "0.3"
+        ],
+        [
+          "hold",
+          "Up",
+          "0.4"
+        ],
+        [
+          "wait",
+          "0.3"
+        ],
+        [
+          "hold",
+          "Up",
+          "1.0"
+        ],
+        [
+          "wait",
+          "0.3"
+        ],
+        [
+          "hold",
+          "Right",
+          "0.2"
+        ]
+      ]
+    }
+  },
+  "goals": [
+    {
+      "goal": "Play the first 15 minutes as a brand-new player who has never seen the game; note every moment of confusion.",
+      "budget_min": 30,
+      "seed": 1881
+    }
+  ],
+  "evidence_dir": "docs/playtests"
+}

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dmccoystephenson/playtester/src/playtester/data/schemas/report.schema.json",
+  "title": "Playtest report",
+  "description": "What one playtesting agent writes to report.json in its session directory (docs/AGENT_PLAYTESTING.md). Checked by `pt report` and read by `pt aggregate`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["session", "goal", "build", "seed", "durationSec", "outcome", "findings", "metrics", "fun", "verdict"],
+  "properties": {
+    "session": {"type": "string", "minLength": 1, "description": "PT_SESSION"},
+    "goal": {"type": "string", "minLength": 1, "description": "The goal the agent was given, verbatim"},
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "commit"],
+      "properties": {
+        "version": {"type": ["string", "null"], "description": "state.json 'version', or session.json 'version'; null when the game has no probe and shows none"},
+        "commit": {"type": ["string", "null"], "description": "session.json 'commit'"}
+      }
+    },
+    "seed": {"type": ["integer", "string", "null"], "description": "The seed played (null when the game has none)"},
+    "durationSec": {"type": "number", "minimum": 0, "description": "Wall-clock seconds spent playing"},
+    "outcome": {"type": "string", "enum": ["achieved", "partial", "blocked"]},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "category", "title", "detail"],
+        "properties": {
+          "severity": {"type": "string", "enum": ["blocker", "major", "minor", "polish"]},
+          "category": {"type": "string", "enum": ["bug", "ux", "balance", "perf", "text", "crash"]},
+          "title": {"type": "string", "minLength": 3, "maxLength": 140, "description": "One line, specific: what is wrong where"},
+          "detail": {"type": "string", "minLength": 1, "description": "What was seen, what was expected"},
+          "repro": {"type": "string", "description": "Steps (pt commands are ideal) from a fresh start with the session's seed"},
+          "screenshot": {"type": ["string", "null"], "description": "Path to a PNG, relative to the session directory or absolute"},
+          "tick": {"type": ["integer", "null"], "minimum": 0, "description": "Game tick when it was seen (state.json 'tick')"}
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Free-form numbers the goal cares about, plus the standard ones `pt aggregate` also derives from events.jsonl",
+      "properties": {
+        "objectivesCompleted": {"type": "integer", "minimum": 0},
+        "deaths": {"type": "integer", "minimum": 0},
+        "secondsToObjective": {
+          "type": "object",
+          "description": "Objective title -> game seconds (tick / ticks per second) from the start to it completing",
+          "additionalProperties": {"type": "number", "minimum": 0}
+        }
+      },
+      "additionalProperties": {"type": ["number", "integer", "string", "boolean", "null"]}
+    },
+    "fun": {"type": "integer", "minimum": 1, "maximum": 5, "description": "1 a chore .. 5 could not stop"},
+    "verdict": {"type": "string", "minLength": 1, "description": "Two or three sentences a designer would want to read first"}
+  }
+}

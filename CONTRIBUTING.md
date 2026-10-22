@@ -111,11 +111,15 @@ python -m py_compile src/playtester/*.py src/playtester/games/*.py examples/*.py
 
 The `Build` workflow (`.github/workflows/build.yml`, job `test`) runs on every
 pull request and on pushes to `main`, on Python 3.8. Besides the syntax check
-above, it runs the import check and `ci/smoke_test.py` under a virtual X server.
-To run the same checks locally on Linux (requires the `xvfb`, `xauth` and
-`scrot` packages):
+above, it runs the test suite and the demo smoke session of the agent
+playtest kit (which start their own virtual X servers), then the import check
+and `ci/smoke_test.py` under a virtual X server. To run the same checks
+locally on Linux (requires the `xvfb`, `xauth`, `scrot`, `xdotool` and
+`imagemagick` packages):
 
 ```bash
+python -m unittest discover -s tests -t .
+PT_ROOT=/tmp/pt-smoke python -m playtester smoke --profile demo
 xvfb-run -a -s "-screen 0 1280x720x24" python -c "import playtester; print('Playtester imported successfully')"
 XDG_SESSION_TYPE=x11 xvfb-run -a -s "-screen 0 1280x720x24" python ci/smoke_test.py
 ```

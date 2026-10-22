@@ -39,3 +39,4 @@ Thumbs.db
 screenshots/
 *.png
 *.jpg
+!tests/fixtures/**/*.png

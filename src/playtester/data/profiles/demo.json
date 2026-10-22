@@ -1,0 +1,57 @@
+{
+  "name": "demo",
+  "title": "Playtester Demo",
+  "description": "a tiny top-down test game that ships with playtester: chop three trees to complete the Gather wood objective",
+  "launch": {
+    "command": ["{python}", "-m", "playtester.demo"],
+    "args": ["--width", "{width}", "--height", "{height}"],
+    "cwd": "{session_dir}",
+    "seed_args": ["--seed", "{seed}"],
+    "quick_world_args": [],
+    "start_timeout_sec": 30
+  },
+  "window": {"title_regex": "^Playtester Demo$", "width": 640, "height": 360},
+  "probe": {
+    "flag": "--playtest-out",
+    "ticks_per_second": 30,
+    "world_screens": ["WORLD"],
+    "screens": ["TITLE", "WORLD", "PAUSE"],
+    "since": "1.0.0"
+  },
+  "movement": {
+    "turn": {"method": "keys", "left": "a", "right": "d", "degrees_per_second": 90},
+    "yaw_increases": "right",
+    "forward_key": "w",
+    "speed_field": "speed",
+    "default_speed": 3,
+    "interact_key": "e",
+    "interact_range": 1.5,
+    "stop_distance": 1.2,
+    "face_tolerance": 6,
+    "nearest_kinds": ["tree"]
+  },
+  "crash_patterns": ["Traceback \\(most recent call last\\)"],
+  "process_name": "playtester.demo",
+  "agent_notes": "demo.md",
+  "cheats": "There are no cheats in the demo.",
+  "smoke": {
+    "description": "Title -> world -> walk to trees and chop until the Gather wood objective completes",
+    "seed": 7,
+    "steps": [
+      ["await", "TITLE", "20"],
+      ["shot", "01-title"],
+      ["key", "space"],
+      ["await", "WORLD", "10"],
+      ["shot", "02-world"]
+    ],
+    "until": {
+      "event": {"type": "objective_completed", "title": "Gather wood"},
+      "attempts": 6,
+      "steps": [["walkto", "tree", "30"], ["key", "e"], ["wait", "0.3"]],
+      "may_fail": ["walkto"]
+    }
+  },
+  "goals": [
+    {"goal": "Complete the Gather wood objective and note anything confusing on the way.", "budget_min": 10, "seed": 7}
+  ]
+}

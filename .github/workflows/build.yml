@@ -11,7 +11,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -22,13 +22,17 @@ jobs:
           python-version: '3.8'
 
       # pyautogui (via mouseinfo) opens the X display at import time, so
-      # everything that imports playtester runs under a virtual X server.
-      # pyscreeze takes Linux screenshots with scrot, and only on a session
-      # it recognises as X11 (XDG_SESSION_TYPE, set on the smoke step).
-      - name: Install Xvfb and scrot
+      # everything that imports the automation classes runs under a virtual X
+      # server. pyscreeze takes Linux screenshots with scrot, and only on a
+      # session it recognises as X11 (XDG_SESSION_TYPE, set on the smoke step).
+      # The agent playtest kit starts its own Xvfb per session and drives it
+      # with xdotool and ImageMagick.
+      - name: Install Xvfb, scrot, xdotool and ImageMagick
         run: |
+          # man-db rebuilds its index after every install, which took minutes
+          sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb xauth scrot
+          sudo apt-get install -y -qq --no-install-recommends xvfb xauth scrot xdotool imagemagick
 
       - name: Install dependencies
         run: |
@@ -38,8 +42,20 @@ jobs:
 
       - name: Compile Python files
         run: |
-          python -m py_compile src/playtester/*.py src/playtester/games/*.py examples/*.py
+          python -m py_compile src/playtester/*.py src/playtester/*/*.py examples/*.py ci/*.py tests/*.py
           echo "All Python files compiled successfully"
+
+      # Unit tests, and end-to-end tests that play the bundled demo game in
+      # real virtual displays (three sessions at once). No xvfb-run: the
+      # harness starts an Xvfb per session.
+      - name: Tests
+        run: python -m unittest discover -s tests -t . -v
+
+      - name: Profiles and the demo smoke session
+        run: |
+          pt profiles
+          for p in beyond-nations kindling demo; do pt validate-profile "$p"; done
+          PT_ROOT="$RUNNER_TEMP/pt-smoke" pt smoke --profile demo
 
       - name: Verify installation
         run: xvfb-run -a -s "-screen 0 1280x720x24" python -c "import playtester; print('Playtester imported successfully')"

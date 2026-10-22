@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dmccoystephenson/playtester/src/playtester/data/schemas/event.schema.json",
+  "title": "Probe event (one line of events.jsonl)",
+  "description": "Every event has type, tick and wallTimeMs. The standard types below have required fields; games may add fields to them and add types of their own (docs/PROBE_CONTRACT.md).",
+  "type": "object",
+  "required": ["type", "tick", "wallTimeMs"],
+  "properties": {
+    "type": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "tick": {"type": "integer", "minimum": 0},
+    "wallTimeMs": {"type": "integer", "minimum": 0}
+  },
+  "allOf": [
+    {"if": {"properties": {"type": {"const": "screen"}}},
+     "then": {"required": ["from", "to"], "properties": {"from": {"type": ["string", "null"]}, "to": {"type": "string"}}}},
+    {"if": {"properties": {"type": {"const": "world"}}},
+     "then": {"required": ["how"], "properties": {"how": {"enum": ["created", "loaded"]}, "seed": {"type": ["integer", "string"]}}}},
+    {"if": {"properties": {"type": {"const": "objective_completed"}}},
+     "then": {"required": ["title"], "properties": {"title": {"type": "string"}, "number": {"type": "integer"}, "id": {"type": "string"}}}},
+    {"if": {"properties": {"type": {"const": "player_death"}}},
+     "then": {"properties": {"total": {"type": "integer", "minimum": 0}}}},
+    {"if": {"properties": {"type": {"const": "status"}}},
+     "then": {"required": ["text"], "properties": {"text": {"type": "string"}}}},
+    {"if": {"properties": {"type": {"const": "save"}}},
+     "then": {"properties": {"count": {"type": "integer", "minimum": 0}}}}
+  ]
+}
