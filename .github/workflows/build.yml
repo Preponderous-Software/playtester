@@ -23,10 +23,12 @@ jobs:
 
       # pyautogui (via mouseinfo) opens the X display at import time, so
       # everything that imports playtester runs under a virtual X server.
-      - name: Install Xvfb
+      # pyscreeze takes Linux screenshots with scrot, and only on a session
+      # it recognises as X11 (XDG_SESSION_TYPE, set on the smoke step).
+      - name: Install Xvfb and scrot
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb xauth
+          sudo apt-get install -y -qq xvfb xauth scrot
 
       - name: Install dependencies
         run: |
@@ -43,4 +45,6 @@ jobs:
         run: xvfb-run -a -s "-screen 0 1280x720x24" python -c "import playtester; print('Playtester imported successfully')"
 
       - name: Smoke test (screenshots + automation cycles)
+        env:
+          XDG_SESSION_TYPE: x11
         run: xvfb-run -a -s "-screen 0 1280x720x24" python ci/smoke_test.py
