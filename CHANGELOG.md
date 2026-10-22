@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LICENSE file (GPL-3.0)
 - GitHub Actions workflows for CI/CD
 - Copilot instructions for better AI assistance
+- `ci/smoke_test.py`, run by the `Build` workflow under Xvfb: captures screenshots of a virtual screen and runs four mocked automation cycles
+- CLAUDE.md with project context for Claude Code
+
+### Fixed
+- `Build` workflow: the import check now runs under Xvfb (it failed with `KeyError: 'DISPLAY'` on every run before); the job is now named `test`
+- Documentation: the "testing without a display" instructions in QUICKSTART.md and CONTRIBUTING.md now say that importing `playtester` needs an X display (use `xvfb-run`); the Error Handling section of docs/API_REFERENCE.md describes what the code actually does; `get_stats()` documents that `screenshots_taken` only counts saved screenshots; README.md and CONTRIBUTING.md describe the CI checks
 
 ## [0.1.0] - 2025-12-28
 

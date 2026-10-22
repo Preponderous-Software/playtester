@@ -116,6 +116,10 @@ python -m py_compile src/playtester/*.py src/playtester/games/*.py examples/*.py
 
 If all files compile without errors, the syntax is valid.
 
+### Continuous Integration
+
+Every pull request runs the `Build` workflow (job `test`, Python 3.8): the syntax check above, an `import playtester` check and `ci/smoke_test.py`, which captures screenshots of a virtual screen and runs four mocked automation cycles. Both run under Xvfb, because importing `playtester` needs a display. See [CONTRIBUTING.md](CONTRIBUTING.md#continuous-integration) for running these locally. There is no unit test suite yet.
+
 ### Manual Testing
 
 Run the example scripts (requires a display environment):

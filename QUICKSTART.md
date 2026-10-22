@@ -20,11 +20,10 @@ pip install -e .
 
 ## Running Examples
 
-### Basic Example (No Display Required for Testing)
-Test the framework logic without actual game automation:
+### Basic Example
+Run the framework with the mocked AI engine and mocked executor (no key presses are sent):
 ```bash
 cd examples
-# Note: Requires a display environment to run fully
 python basic_example.py
 ```
 
@@ -40,7 +39,7 @@ cd examples
 python roam_example.py
 ```
 
-**Note**: Examples require a display environment (X11, Wayland, or similar) to capture screenshots. They will not work in headless environments.
+**Note**: Examples require a display environment (X11, Wayland, or similar) to capture screenshots. They will not work in headless environments unless run under a virtual display (see [Testing Without a Physical Display](#testing-without-a-physical-display)).
 
 ## Usage in Your Code
 
@@ -94,9 +93,18 @@ for cycle_info in automator.run_continuous(max_cycles=20):
     print(f"  Success: {cycle_info['success']}")
 ```
 
-## Testing Without a Display
+## Testing Without a Physical Display
 
-To test the code structure without a display:
+Importing any `playtester` module (including `playtester.ai_decision_engine`)
+runs the package `__init__.py`, which imports `pyautogui`; on Linux that needs
+an X display at import time and fails headless with `KeyError: 'DISPLAY'`.
+On a headless Linux machine, run under a virtual X server (`xvfb-run`, from the
+`xvfb` package), as CI does:
+```bash
+xvfb-run -a -s "-screen 0 1280x720x24" python test_logic.py
+```
+
+where `test_logic.py`, run from the repository root, exercises the mocked components:
 ```python
 # Test imports
 import sys

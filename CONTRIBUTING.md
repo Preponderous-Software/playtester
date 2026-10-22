@@ -104,12 +104,28 @@ Note: Examples require a display environment (X11, Wayland, or similar).
 Verify Python syntax:
 
 ```bash
-python -m py_compile src/playtester/*.py src/playtester/games/*.py
+python -m py_compile src/playtester/*.py src/playtester/games/*.py examples/*.py
+```
+
+### Continuous Integration
+
+The `Build` workflow (`.github/workflows/build.yml`, job `test`) runs on every
+pull request and on pushes to `main`, on Python 3.8. Besides the syntax check
+above, it runs the import check and `ci/smoke_test.py` under a virtual X server.
+To run the same checks locally on Linux (requires the `xvfb`, `xauth` and
+`scrot` packages):
+
+```bash
+xvfb-run -a -s "-screen 0 1280x720x24" python -c "import playtester; print('Playtester imported successfully')"
+XDG_SESSION_TYPE=x11 xvfb-run -a -s "-screen 0 1280x720x24" python ci/smoke_test.py
 ```
 
 ### Testing Without Display
 
-For testing in headless environments, you can test the core logic:
+Importing any `playtester` module runs the package `__init__.py`, which imports
+`pyautogui`; on Linux that needs an X display at import time and fails with
+`KeyError: 'DISPLAY'` when none is available. In a headless environment, run the
+script below under `xvfb-run` (as above) to test the core logic:
 
 ```python
 import sys
