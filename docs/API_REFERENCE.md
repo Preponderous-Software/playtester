@@ -244,6 +244,12 @@ Gets automation session statistics.
 }
 ```
 
+`actions_executed` is the executor's `action_count`; `KeyboardActionExecutor`
+does not count `WAIT` or unmapped actions, which press no key.
+`screenshots_taken` is the capture's `screenshot_count`, which is only
+incremented when the `ScreenshotCapture` was created with
+`save_screenshots=True`; otherwise it stays `0`.
+
 ---
 
 ## Game-Specific Modules
@@ -375,14 +381,16 @@ for info in automator.run_continuous(stop_condition=should_stop):
 
 ## Type Hints
 
-The codebase uses Python type hints throughout. Key types:
+The codebase uses Python type hints throughout. The package does not define
+type aliases; the names below are shorthand for the types used in signatures
+and are not importable from `playtester`:
 
 ```python
 from typing import List, Dict, Any, Optional, Tuple, Callable
 from PIL import Image
 from enum import Enum
 
-# Common type aliases
+# Shorthand for common types (not defined in the package)
 GameContext = Dict[str, Any]
 ActionParams = Optional[Dict[str, Any]]
 ScreenRegion = Tuple[int, int, int, int]  # (x, y, width, height)
@@ -393,16 +401,20 @@ CycleInfo = Dict[str, Any]
 
 ## Error Handling
 
-Most methods return success/failure indicators rather than raising exceptions for normal operation failures:
-
-- `execute_action()` returns `bool` for success/failure
-- Screenshot captures return `None` on failure
-- Decision engines should handle errors internally and return a safe default action
-
-For configuration or initialization errors, standard Python exceptions are raised:
-- `ValueError` for invalid parameters
-- `FileNotFoundError` for missing resources
-- `ImportError` for missing dependencies
+- `execute_action()` returns `bool`. `KeyboardActionExecutor` catches any
+  exception raised while pressing a key, prints it and returns `False`;
+  `MockedActionExecutor` always returns `True`.
+- `capture_full_screen()` and `capture_region()` do not catch errors: an
+  exception from `pyautogui.screenshot()` (or from saving the file when
+  `save_screenshots=True`) propagates to the caller, and through
+  `GameAutomator.run_single_cycle()` / `run_continuous()`.
+- `MockedAIDecisionEngine.analyze_and_decide()` does not raise for normal
+  input; custom decision engines should handle their own errors and return a
+  safe default action, because `GameAutomator` does not catch exceptions from
+  the engine.
+- Importing `playtester` imports `pyautogui`, which on Linux raises
+  `KeyError: 'DISPLAY'` when no X display is available (run under `xvfb-run`
+  headless).
 
 ---
 
