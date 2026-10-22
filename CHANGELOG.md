@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit and end-to-end test suite (`tests/`), run in CI
 
 ### Changed
+- Relicensed from GPL-3.0 to MIT
 - `import playtester` no longer needs a display: the automation classes are loaded lazily on first use (`from playtester import GameAutomator` works as before)
 - Alignment with DPC (Dans Plugins Community) conventions
 - CONTRIBUTING.md with contribution guidelines

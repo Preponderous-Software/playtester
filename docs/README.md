@@ -248,7 +248,7 @@ See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for details on planned feat
 
 ## License
 
-This project is open source. See LICENSE file for details.
+This project is licensed under the MIT License. See the [LICENSE](../LICENSE) file.
 
 ## Contributing
 
