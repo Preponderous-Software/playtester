@@ -11,7 +11,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -29,8 +29,10 @@ jobs:
       # with xdotool and ImageMagick.
       - name: Install Xvfb, scrot, xdotool and ImageMagick
         run: |
+          # man-db rebuilds its index after every install, which took minutes
+          sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb xauth scrot xdotool imagemagick
+          sudo apt-get install -y -qq --no-install-recommends xvfb xauth scrot xdotool imagemagick
 
       - name: Install dependencies
         run: |
