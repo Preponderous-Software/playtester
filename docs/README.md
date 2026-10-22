@@ -2,6 +2,8 @@
 
 ## Overview
 
+Besides the automation framework described here, playtester has an agent playtest kit: see [AGENT_PLAYTESTING.md](AGENT_PLAYTESTING.md), [PROFILES.md](PROFILES.md) and [PROBE_CONTRACT.md](PROBE_CONTRACT.md).
+
 Playtester is a Python framework for automating game play using AI-powered decision making based on visual game state analysis. The system captures screenshots of game applications, feeds them to an AI decision engine, and executes corresponding game actions.
 
 ## Features

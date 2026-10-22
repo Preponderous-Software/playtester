@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dmccoystephenson/playtester/src/playtester/data/schemas/state.schema.json",
+  "title": "Probe state.json",
+  "description": "The snapshot a probe-capable game rewrites about twice a second (docs/PROBE_CONTRACT.md). The core fields are required; everything else is optional, and games may add their own top-level fields.",
+  "type": "object",
+  "required": ["wallTimeMs", "version", "screen", "world"],
+  "properties": {
+    "wallTimeMs": {"type": "integer", "minimum": 0, "description": "Unix time in milliseconds when this snapshot was written"},
+    "version": {"type": "string", "minLength": 1, "description": "The version the game shows"},
+    "screen": {"type": "string", "minLength": 1, "description": "The screen on show, as an upper-case name (TITLE, MAIN_MENU, WORLD, PAUSE, ...)"},
+    "world": {"type": "boolean", "description": "Whether a world (a game in play) exists; the world fields below are required when true"},
+    "fps": {"type": "number", "minimum": 0},
+    "tps": {"type": "number", "minimum": 0, "description": "Measured simulation ticks per wall-clock second"},
+    "openPanels": {"type": "array", "items": {"type": "string"}},
+    "tip": {"type": ["string", "null"]},
+    "seed": {"type": ["integer", "string"]},
+    "tick": {"type": "integer", "minimum": 0, "description": "Simulation ticks since the world began (saved with it)"},
+    "player": {
+      "type": "object",
+      "required": ["x", "z", "yawDeg"],
+      "properties": {
+        "x": {"type": "number"},
+        "y": {"type": "number"},
+        "z": {"type": "number"},
+        "yawDeg": {"type": "number", "description": "Heading in degrees; which way it grows is the profile's movement.yaw_increases"},
+        "speed": {"type": "number", "minimum": 0, "description": "Walking speed in world units a second"},
+        "alive": {"type": "boolean"}
+      }
+    },
+    "objective": {
+      "type": ["object", "null"],
+      "properties": {
+        "number": {"type": "integer"},
+        "title": {"type": ["string", "null"]},
+        "progress": {"type": ["string", "null"]},
+        "completed": {"type": "integer", "minimum": 0}
+      }
+    },
+    "status": {"type": ["string", "null"]},
+    "nearest": {
+      "type": "object",
+      "description": "Kind -> things of that kind, closest first",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["distance", "bearing"],
+          "properties": {
+            "name": {"type": "string"},
+            "id": {"type": ["string", "integer"]},
+            "distance": {"type": "number", "minimum": 0},
+            "bearing": {"type": "number", "minimum": -180, "maximum": 180, "description": "Degrees from where the player faces, + to the right"}
+          }
+        }
+      }
+    }
+  },
+  "if": {"properties": {"world": {"const": true}}},
+  "then": {"required": ["tick", "seed", "player"]}
+}

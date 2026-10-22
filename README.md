@@ -1,12 +1,37 @@
-# Playtester - AI-Powered Game Automation System
+# Playtester - AI Playtesting and Game Automation
 
-An open-source Python framework for automating game play through AI-powered decision making based on visual game state analysis.
+An open-source Python toolkit for playing games with AI: parallel AI agents that playtest a real game headless, and a framework for automating game play from screenshots.
 
 ## Description
 
-Playtester is a Python framework that enables automated gameplay by capturing screenshots of game applications, feeding them to an AI decision engine, and executing corresponding actions. The system uses a modular architecture with enumerated game actions, making it easy to extend for different games and AI models.
+Playtester has two parts:
 
-The framework currently provides a complete working implementation with mocked AI components and comprehensive documentation for integrating open-source vision-language models such as LLaVA, CLIP, MiniGPT-4, or OpenFlamingo.
+- **The agent playtest kit.** Any number of AI agents (for example Claude Code subagents) play the real game at once, each in its own headless session and toward its own goal, the way a person would: by looking at screenshots and pressing keys. Each writes a structured report, and the reports are merged into one summary with grouped findings and objective timings. The `pt` command runs and drives the sessions; a **profile** describes each game; games can optionally implement a small **probe** (state and event files) so agents can steer precisely. Beyond Nations and Kindling are bundled as profiles. See [docs/AGENT_PLAYTESTING.md](docs/AGENT_PLAYTESTING.md).
+- **The automation framework.** Screenshot capture, an AI decision engine (currently mocked) and a keyboard executor, wired together by `GameAutomator`, with documentation for integrating open-source vision-language models such as LLaVA, CLIP, MiniGPT-4, or OpenFlamingo.
+
+## Agent playtesting, quickly
+
+```bash
+sudo apt-get install -y xvfb xdotool imagemagick libgl1-mesa-dri
+pip install -e .
+PT_ROOT=/tmp/pt-try pt smoke --profile demo        # proves the machine can run the kit
+
+# one session of a real game, by hand
+export PT_ROOT=/tmp/pt-try PT_SESSION=me
+pt start --profile beyond-nations --game-dir ~/beyond-nations --seed 42
+pt shot title && pt key space && pt state
+pt stop
+
+# a coordinated run: install the coordinator skill into the game's checkout,
+# then ask Claude Code to /playtest
+pt install-skill ~/beyond-nations --profile beyond-nations
+```
+
+| Document | |
+| --- | --- |
+| [docs/AGENT_PLAYTESTING.md](docs/AGENT_PLAYTESTING.md) | The kit: install, commands, running N agents, costs, goals, reading the summary, troubleshooting |
+| [docs/PROFILES.md](docs/PROFILES.md) | Game profiles: every field, and adding a game |
+| [docs/PROBE_CONTRACT.md](docs/PROBE_CONTRACT.md) | The optional probe a game can implement (`state.json`, `events.jsonl`) |
 
 ## Installation
 
@@ -31,8 +56,9 @@ The framework currently provides a complete working implementation with mocked A
 ### Requirements
 
 - Python 3.8 or higher
-- A graphical desktop environment (X11, Wayland, Windows, or macOS)
-- The game you want to automate
+- For the agent playtest kit: Linux or WSL2 with Xvfb, xdotool and ImageMagick (no desktop needed)
+- For the automation framework: a graphical desktop environment (X11, Wayland, Windows, or macOS)
+- The game you want to playtest or automate
 
 ## Usage
 
@@ -118,7 +144,7 @@ If all files compile without errors, the syntax is valid.
 
 ### Continuous Integration
 
-Every pull request runs the `Build` workflow (job `test`, Python 3.8): the syntax check above, an `import playtester` check and `ci/smoke_test.py`, which captures screenshots of a virtual screen and runs four mocked automation cycles. Both run under Xvfb, because importing `playtester` needs a display. See [CONTRIBUTING.md](CONTRIBUTING.md#continuous-integration) for running these locally. There is no unit test suite yet.
+Every pull request runs the `Build` workflow (job `test`, Python 3.8): the syntax check above, the unit and end-to-end test suite (`python -m unittest discover -s tests -t .`, which plays the bundled demo game in real virtual displays, three sessions at once), `pt smoke --profile demo`, an import check of the automation classes and `ci/smoke_test.py`, which captures screenshots of a virtual screen and runs four mocked automation cycles. The automation classes need a display at import time, so those checks run under Xvfb; the agent kit does not. See [CONTRIBUTING.md](CONTRIBUTING.md#continuous-integration) for running these locally.
 
 ### Manual Testing
 
@@ -136,7 +162,7 @@ python roam_example.py
 ### Technology Stack
 
 - **Language**: Python 3.8+
-- **Dependencies**: pillow, pyautogui, pynput
+- **Dependencies**: pillow, pyautogui, pynput (the automation framework); the agent kit is standard-library Python plus Xvfb, xdotool and ImageMagick
 - **Package Manager**: pip
 - **Build Tool**: setuptools
 
@@ -145,14 +171,16 @@ python roam_example.py
 ```
 playtester/
 ├── src/playtester/          # Main package
-│   ├── screenshot_capture.py
-│   ├── ai_decision_engine.py
-│   ├── action_executor.py
-│   ├── game_automator.py
-│   └── games/               # Game-specific implementations
+│   ├── harness/             # Agent playtest kit: the pt command, sessions, profiles, smoke, measure
+│   ├── agents/              # Agent prompt, report validation, aggregation
+│   ├── data/                # Bundled profiles, schemas, the agent prompt, the coordinator skill
+│   ├── demo.py              # A tiny game implementing the probe, for tests
+│   ├── probecheck.py, schema.py
+│   ├── screenshot_capture.py, ai_decision_engine.py, action_executor.py, game_automator.py
+│   └── games/               # Automation presets (Ophidian, Roam)
 ├── examples/                # Example scripts
 ├── docs/                    # Documentation
-└── tests/                   # Tests (future)
+└── tests/                   # Unit and end-to-end tests
 ```
 
 ### Development Workflow

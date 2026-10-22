@@ -1,0 +1,79 @@
+{
+  "name": "beyond-nations",
+  "title": "Beyond Nations",
+  "description": "a 3D colony-and-nations game: gather, found settlements, lead a nation through eras, and deal with neighbours",
+  "repository": "Preponderous-Software/beyond-nations",
+  "build": {
+    "command": "dotnet build src/BeyondNations.Desktop/BeyondNations.Desktop.csproj -c Release",
+    "requires": ["dotnet"]
+  },
+  "launch": {
+    "command": ["{game_dir}/src/BeyondNations.Desktop/bin/Release/net8.0/BeyondNations.Desktop"],
+    "args": ["--width", "{width}", "--height", "{height}", "--no-usage-reporting"],
+    "cwd": "{game_dir}/src/BeyondNations.Desktop/bin/Release/net8.0",
+    "env": {"XDG_DATA_HOME": "{data_dir}"},
+    "env_defaults": {"DOTNET_ROOT": "~/.dotnet"},
+    "seed_args": ["--seed", "{seed}"],
+    "quick_world_args": ["--start-screen", "world", "--no-saves"],
+    "start_timeout_sec": 60
+  },
+  "window": {"title_regex": "^Beyond Nations$", "width": 960, "height": 540},
+  "probe": {
+    "flag": "--playtest-out",
+    "ticks_per_second": 50,
+    "world_screens": ["WORLD"],
+    "screens": ["TITLE", "MAIN_MENU", "NEW_WORLD", "WORLD", "PAUSE", "INVENTORY", "NATIONS", "CRAFTING", "..."],
+    "since": "0.5.0"
+  },
+  "movement": {
+    "turn": {"method": "keys", "left": "a", "right": "d", "degrees_per_second": 100},
+    "yaw_increases": "left",
+    "forward_key": "w",
+    "speed_field": "speed",
+    "default_speed": 25,
+    "interact_key": "e",
+    "interact_range": 5,
+    "stop_distance": 4,
+    "face_tolerance": 8,
+    "nearest_kinds": ["tree", "rock", "pawn", "chicken", "settlement", "stall"]
+  },
+  "crash_patterns": ["\\[error\\] the (game crashed|host failed to start): .*"],
+  "process_name": "BeyondNations.Desktop ",
+  "agent_notes": "beyond-nations.md",
+  "cheats": "Do not press F1-F6 (debug overlay and spawn commands) or use `--stage-*` switches unless your goal says so.",
+  "smoke": {
+    "description": "Title -> Start -> Begin -> walk to trees and chop until the Gather wood objective completes",
+    "seed": 42,
+    "steps": [
+      ["await", "TITLE", "30"],
+      ["key", "space"],
+      ["await", "MAIN_MENU", "10"],
+      ["shot", "01-main-menu"],
+      ["click", "480", "315"],
+      ["await", "NEW_WORLD", "10"],
+      ["click", "480", "315"],
+      ["await", "WORLD", "30"],
+      ["wait", "2"],
+      ["shot", "02-world"]
+    ],
+    "until": {
+      "event": {"type": "objective_completed", "title": "Gather wood"},
+      "attempts": 10,
+      "steps": [["walkto", "tree", "60"], ["key", "e"], ["wait", "1.5"]],
+      "may_fail": ["walkto"]
+    }
+  },
+  "goals": [
+    {"goal": "Play the first 10 minutes as a brand-new player who has never seen the game; note every moment of confusion.", "budget_min": 30, "seed": 101},
+    {"goal": "Reach the Village era as fast as you can (it cannot come before day 3, about 17 minutes of game time); record the game time of every objective.", "budget_min": 60, "seed": 102},
+    {"goal": "Survive the first winter. Start with `--season autumn` (a fresh world otherwise reaches winter only after about 57 minutes of game time). Note how food and cold feel.", "budget_min": 60, "seed": 103, "args": ["--season", "autumn"]},
+    {"goal": "Diplomacy and war: lead a nation, meet a neighbour, try alliance, rivalry and war from the Nations screen (O).", "budget_min": 30, "seed": 104},
+    {"goal": "Trade and caravans: build a market stall, buy and sell, get a Storehouse and send a caravan.", "budget_min": 30, "seed": 105},
+    {"goal": "Ruler, laws and heirs: lead a nation, enact and repeal laws, and see what happens when the ruler dies.", "budget_min": 30, "seed": 106},
+    {"goal": "Crafting: find and use every recipe on the crafting screen (C); are tools worth making?", "budget_min": 30, "seed": 107},
+    {"goal": "World events: play until world events are offered, take different choices, and judge whether the consequences are clear and fair.", "budget_min": 30, "seed": 108},
+    {"goal": "Accessibility and text audit, touching only what a mouse-and-keyboard player would: every screen and panel; cut-off, overlapping, unclear or misspelled text; contrast; anything only explained on hover.", "budget_min": 30, "seed": 109},
+    {"goal": "Save/load and share-seed round trip: save from the pause menu, stop, `pt start --continue`, confirm the world is identical; then start a new world from the seed shown on the Share screen and confirm it matches.", "budget_min": 30, "seed": "Ironvale"}
+  ],
+  "evidence_dir": "docs/playtests"
+}
