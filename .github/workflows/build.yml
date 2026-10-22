@@ -2,33 +2,49 @@ name: Build
 
 on:
   push:
-    branches: [ main, develop, copilot/** ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.8'
+
+      # pyautogui (via mouseinfo) opens the X display at import time, so
+      # everything that imports playtester runs under a virtual X server.
+      # pyscreeze takes Linux screenshots with scrot, and only on a session
+      # it recognises as X11 (XDG_SESSION_TYPE, set on the smoke step).
+      - name: Install Xvfb and scrot
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb xauth scrot
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Verify installation
-        run: |
           pip install -e .
-          python -c "import playtester; print('Playtester imported successfully')"
 
       - name: Compile Python files
         run: |
           python -m py_compile src/playtester/*.py src/playtester/games/*.py examples/*.py
           echo "All Python files compiled successfully"
+
+      - name: Verify installation
+        run: xvfb-run -a -s "-screen 0 1280x720x24" python -c "import playtester; print('Playtester imported successfully')"
+
+      - name: Smoke test (screenshots + automation cycles)
+        env:
+          XDG_SESSION_TYPE: x11
+        run: xvfb-run -a -s "-screen 0 1280x720x24" python ci/smoke_test.py
