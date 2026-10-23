@@ -34,11 +34,28 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends xvfb xauth scrot xdotool imagemagick
 
-      - name: Install dependencies
+      # The agent playtest kit is standard-library Python: install it with no
+      # extras and check that nothing third-party came along, so the kit's
+      # tests below prove it runs without the automation dependencies.
+      - name: Install playtester (no extras)
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
           pip install -e .
+          python - <<'PY'
+          import importlib.util, sys
+          found = [m for m in ("PIL", "pyautogui", "pynput") if importlib.util.find_spec(m)]
+          sys.exit("installed without extras, yet found: %s" % found if found else 0)
+          PY
+          python - <<'PY'
+          import playtester
+          try:
+              playtester.GameAutomator
+          except ImportError as e:
+              assert "automation" in str(e), e
+              print("ok:", e)
+          else:
+              raise SystemExit("GameAutomator imported without the automation extra")
+          PY
 
       - name: Compile Python files
         run: |
@@ -56,6 +73,9 @@ jobs:
           pt profiles
           for p in beyond-nations kindling demo; do pt validate-profile "$p"; done
           PT_ROOT="$RUNNER_TEMP/pt-smoke" pt smoke --profile demo
+
+      - name: Install the automation extra
+        run: pip install -e ".[automation]"
 
       - name: Verify installation
         run: xvfb-run -a -s "-screen 0 1280x720x24" python -c "import playtester; print('Playtester imported successfully')"

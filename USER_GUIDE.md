@@ -21,14 +21,10 @@ This guide will help you get started with Playtester and understand how to use i
    cd playtester
    ```
 
-2. Install dependencies:
+2. Install the package with the `automation` extra (pillow, pyautogui and
+   pynput, which the automation framework needs):
    ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Install the package:
-   ```bash
-   pip install -e .
+   pip install -e ".[automation]"
    ```
 
 ## First Steps

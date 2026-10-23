@@ -13,14 +13,10 @@ git clone https://github.com/dmccoystephenson/playtester.git
 cd playtester
 ```
 
-2. Install dependencies:
+2. Install the package with the `automation` extra (pillow, pyautogui and pynput,
+   which the automation framework needs; the agent playtest kit needs none of them):
 ```bash
-pip install -r requirements.txt
-```
-
-3. Install the package:
-```bash
-pip install -e .
+pip install -e ".[automation]"
 ```
 
 ## Running Examples
@@ -100,10 +96,12 @@ for cycle_info in automator.run_continuous(max_cycles=20):
 
 ## Testing Without a Physical Display
 
-Importing any `playtester` module (including `playtester.ai_decision_engine`)
-runs the package `__init__.py`, which imports `pyautogui`; on Linux that needs
-an X display at import time and fails headless with `KeyError: 'DISPLAY'`.
-On a headless Linux machine, run under a virtual X server (`xvfb-run`, from the
+`import playtester` and `playtester.ai_decision_engine` need no display, but
+the modules that import `pyautogui` do: `action_executor` and
+`screenshot_capture` (and so `game_automator` and `games`). On Linux pyautogui
+needs an X display at import time and fails headless with
+`KeyError: 'DISPLAY'`. The script below imports `action_executor`, so on a
+headless Linux machine run it under a virtual X server (`xvfb-run`, from the
 `xvfb` package), as CI does:
 ```bash
 xvfb-run -a -s "-screen 0 1280x720x24" python test_logic.py
@@ -142,8 +140,7 @@ print(f"Executed actions: {executor.get_execution_history()}")
 ```
 playtester/
 ├── README.md              # Main documentation
-├── SUMMARY.md            # Project summary
-├── requirements.txt      # Dependencies
+├── requirements.txt      # The automation extra's dependencies
 ├── setup.py             # Package configuration
 ├── docs/                # Detailed documentation
 │   ├── README.md        # Full usage guide

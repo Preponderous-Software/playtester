@@ -40,14 +40,20 @@ Linux (or WSL2) with Python 3.8 or newer, and:
 ```bash
 sudo apt-get install -y xvfb xdotool imagemagick libgl1-mesa-dri
 pip install -e .            # from a playtester checkout; gives `pt` and `playtester`
+# or, without a checkout: pip install git+https://github.com/dmccoystephenson/playtester
 pt profiles
 PT_ROOT=/tmp/pt-try pt smoke --profile demo     # PASS proves the machine can run the kit
 ```
 
-`pip install "playtester[headless]"` documents the same system packages; pip
-cannot install them. The harness is standard-library Python: it imports
-nothing from the automation loop, so it needs no display, `pyautogui` or
-`pynput` to run (they are still installed as the package's dependencies).
+pip cannot install the system packages. The harness is standard-library
+Python: it imports nothing from the automation loop, so it needs no display
+and installing playtester installs no Python packages (`pyautogui`, `pynput`
+and `pillow` belong to the experimental automation framework and come with
+the `automation` extra only).
+
+The bundled Beyond Nations and Kindling profiles play games you clone and
+build yourself; the README's [Bundled games](../README.md#bundled-games)
+section has the commands and the minimum version each needs.
 
 ## One session by hand
 
@@ -68,14 +74,15 @@ pt stop
 ```
 
 `pt help` lists every command; `pt smoke --profile NAME` is the profile's
-scripted session.
+scripted session. It runs in a session of its own (`smoke-<pid>`, or
+`--session NAME`) and stops only what it started; `--keep` leaves it running.
 
 ### Commands
 
 | Command | |
 | --- | --- |
 | `start [--profile P] [--game-dir D] [--seed S] [--no-probe] [game args]` | claims a free display (`:100`-`:199`) under a lock, starts Xvfb and the game (with the probe flag when the profile has one), waits for the window (and the first `state.json`), moves it to the origin; on failure prints the log tail and cleans up. Arguments it does not know go to the game; after `--` everything does |
-| `stop` | stops the game (its whole process group), then its Xvfb; safe to repeat |
+| `stop` | stops the game (its whole process group), then its Xvfb; safe to repeat. A pid is signalled only while it is still the process the session started (its start time is recorded beside the pid) |
 | `status` | running?, display, CPU, memory, fps, ticks a second |
 | `key K...`, `hold K SECS` | xdotool key names; combos as `Shift_L+w` |
 | `click X Y [BTN]`, `move X Y`, `drag X1 Y1 X2 Y2 SECS [BTN]`, `mousehold SECS [BTN]`, `scroll N`, `type TEXT` | window coordinates; a click hovers 0.3 s first |
@@ -123,8 +130,9 @@ Two lessons from the first ten-agent run are built in:
 ### What it costs
 
 Measured with `pt measure N` (sessions idle in a world, settled, CPU sampled
-from `/proc`, frame rate and tick rate from `state.json`) on a 20-core,
-24 GB WSL2 machine with other work running alongside:
+from `/proc`, frame rate and tick rate from `state.json`) on one desktop
+machine (20 cores, 24 GB, under WSL2) with other work running alongside;
+expect different numbers on yours, and measure them with `pt measure`:
 
 | Game | Sessions | Size | llvmpipe threads | CPU cores, total | Memory a session (game + Xvfb) | fps | Ticks/s (full speed) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -142,8 +150,9 @@ from `/proc`, frame rate and tick rate from `state.json`) on a 20-core,
 - A smaller window helps a game whose cost is in filling pixels (Kindling's
   shadows and lighting) and not one whose cost is elsewhere (Beyond Nations
   at 800x450 is no faster than at 960x540).
-- Rule of thumb on a 20-core machine: about 6 Beyond Nations sessions near
-  full speed, 10 at a third of it; about 4 Kindling sessions.
+- Rule of thumb from those numbers (20 cores): about 6 Beyond Nations
+  sessions near full speed, 10 at a third of it; about 4 Kindling sessions.
+  Scale by your core count, then check with `pt measure`.
 
 Agents spend much of their time thinking between commands while the game
 keeps running, so a slower world costs less than it sounds.

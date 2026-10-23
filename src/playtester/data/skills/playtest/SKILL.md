@@ -8,9 +8,10 @@ description: Run a parallel AI playtest of this game with playtester - build the
 PROFILE={{PROFILE}}
 
 You coordinate; subagents play. The harness, the agent prompt, the report
-schema and the aggregator come from **playtester** (`pip install playtester`
-or `pip install -e <checkout>`; its docs/AGENT_PLAYTESTING.md explains the
-kit). This game's profile is `$PROFILE` (`pt profiles` lists the bundled
+schema and the aggregator come from **playtester**
+(`pip install git+https://github.com/dmccoystephenson/playtester`, or
+`pip install -e <checkout>`; it is not on PyPI, and its
+docs/AGENT_PLAYTESTING.md explains the kit). This game's profile is `$PROFILE` (`pt profiles` lists the bundled
 ones; a path to a profile JSON file works too). Do not play yourself and do
 not fix anything you find: the output is a summary, committed evidence and,
 if the owner agrees, issues.
@@ -44,7 +45,7 @@ this one build. Record the commit: `git rev-parse --short HEAD`.
 ```bash
 RUN=/tmp/playtest-$PROFILE/$(date +%Y%m%d-%H%M)
 mkdir -p "$RUN"
-PT_ROOT="$RUN/_smoke" pt smoke --profile $PROFILE --game-dir "$PWD"
+PT_ROOT="$RUN/_smoke" pt smoke --profile $PROFILE --game-dir "$PWD" --session smoke
 ```
 
 It must print `PASS` (a minute or two). If it fails, read

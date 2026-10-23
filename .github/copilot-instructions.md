@@ -1,81 +1,20 @@
 # Copilot Instructions
 
-This repository follows the DPC (Dans Plugins Community) conventions defined at
-https://github.com/Dans-Plugins/dpc-conventions. Read those conventions before
-making any changes.
+Read [CLAUDE.md](../CLAUDE.md) before making changes: it describes this
+repository's two parts, its build and test commands, layout, architecture and
+conventions. [CONTRIBUTING.md](../CONTRIBUTING.md) describes the contribution
+workflow.
 
-## Technology Stack
+In short:
 
-- Language: Python 3.8+
-- Build tool: Python setuptools
-- Target platform: Cross-platform (Windows, Linux, macOS)
-- Dependencies: pillow, pyautogui, pynput
-
-## Project Structure
-
-- `src/playtester/` – Main package source code
-  - `screenshot_capture.py` – Screenshot capture functionality
-  - `ai_decision_engine.py` – AI decision interface and implementations
-  - `action_executor.py` – Action execution with keyboard/mouse
-  - `game_automator.py` – Main orchestrator
-  - `games/` – Game-specific automator implementations
-- `examples/` – Example scripts demonstrating usage
-- `docs/` – Documentation files
-  - `README.md` – Full usage guide
-  - `API_REFERENCE.md` – Complete API documentation
-  - `IMPLEMENTATION_PLAN.md` – Future roadmap
-  - `ARCHITECTURE.md` – System design diagrams
-- `requirements.txt` – Python dependencies
-- `setup.py` – Package configuration
-
-## Coding Conventions
-
-- Follow PEP 8 Python style guidelines
-- Use type hints for function parameters and return values
-- Add comprehensive docstrings to all public classes and methods
-- Use descriptive variable and function names
-- Keep functions focused and small
-- Use abstract base classes for extensibility
-- Separate concerns: capture, decide, execute
-- All user-facing strings should be clear and descriptive
-- Add inline comments for complex logic only
-
-## Architecture Patterns
-
-- **Modular Design**: Each component (capture, AI, executor) is independent
-- **Abstract Base Classes**: Use ABC for extensibility (AIDecisionEngine, ActionExecutor)
-- **Enumerated Actions**: All decisions must be GameAction enum values
-- **Orchestrator Pattern**: GameAutomator coordinates all components
-- **Mocked Implementations**: Provide mocked versions for testing (MockedAIDecisionEngine, MockedActionExecutor)
-
-## Contribution Workflow
-
-- Branch from `main` for all changes
-- Open pull requests against `main`
-- Reference the related GitHub issue in every pull request description
-- Update documentation when adding features
-- Verify Python syntax with `python -m py_compile`
-- Test changes with example scripts (if display is available)
-
-## Documentation Requirements
-
-When adding or modifying features:
-- Update `README.md` for major features
-- Update `docs/README.md` for detailed usage changes
-- Update `docs/API_REFERENCE.md` for API changes
-- Update `docs/IMPLEMENTATION_PLAN.md` if adding to roadmap
-- Update `CHANGELOG.md` with your changes
-- Add docstrings to new classes and methods
-
-## Testing
-
-- Verify Python syntax: `python -m py_compile src/playtester/*.py`
-- Test manually with examples (requires display environment)
-- For headless testing, test core logic without GUI components
-
-## Important Notes
-
-- This framework is designed to integrate with open-source AI models
-- Current AI decision engine is mocked - see IMPLEMENTATION_PLAN.md for integration guidance
-- Screenshot capture requires a display environment (not headless compatible)
-- Follow the existing patterns when adding new games or executors
+- **The agent playtest kit** (`src/playtester/harness/`, `src/playtester/agents/`,
+  the `pt` command) is standard-library Python 3.8+ that drives games in Xvfb
+  with xdotool and ImageMagick. Keep it free of third-party imports.
+- **The screenshot automation framework** (`GameAutomator` and friends) is
+  experimental; its decision engine is mocked. Its dependencies (pillow,
+  pyautogui, pynput) are the `automation` extra.
+- Test with `python -m unittest discover -s tests -t .` and
+  `python -m py_compile src/playtester/*.py src/playtester/*/*.py examples/*.py ci/*.py tests/*.py`.
+- Keep code Python 3.8 compatible, follow PEP 8, add docstrings to public
+  classes and methods, and add a `CHANGELOG.md` entry for user-facing changes.
+- Branch from `main` and open pull requests against `main`.
