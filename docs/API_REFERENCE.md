@@ -246,9 +246,9 @@ Gets automation session statistics.
 
 `actions_executed` is the executor's `action_count`; `KeyboardActionExecutor`
 does not count `WAIT` or unmapped actions, which press no key.
-`screenshots_taken` is the capture's `screenshot_count`, which is only
-incremented when the `ScreenshotCapture` was created with
-`save_screenshots=True`; otherwise it stays `0`.
+`screenshots_taken` is the capture's `screenshot_count`: every
+`capture_full_screen()` and `capture_region()` call increments it, whether or
+not `save_screenshots` is set.
 
 ---
 

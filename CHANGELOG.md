@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pid files record each process's start time; `pt stop` (and every check of whether a session is running) signals a pid only while it still belongs to the process the session started, so a stale pid file never signals an unrelated process
 
 ### Fixed
+- `GameAutomator.get_stats()` `screenshots_taken` counts every capture; it stayed `0` unless the `ScreenshotCapture` was created with `save_screenshots=True`
 - `pt` reports a missing field in a profile or the game's probe output, and a flag without its value, as an error message instead of a traceback; so does `pt aggregate`
 - Documentation: the shipped `/playtest` skill installs playtester from GitHub (it is not on PyPI); the README leads with the agent kit, a first run against the bundled demo game, and how to get and build the bundled games; dead GitHub Discussions links and the outdated SUMMARY.md were removed
 - `Build` workflow: the import check now runs under Xvfb (it failed with `KeyError: 'DISPLAY'` on every run before); the job is now named `test`

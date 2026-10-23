@@ -41,9 +41,9 @@ class ScreenshotCapture:
             PIL Image object containing the screenshot
         """
         screenshot = pyautogui.screenshot()
+        self.screenshot_count += 1
         
         if self.save_screenshots:
-            self.screenshot_count += 1
             filepath = self.output_dir / f"screenshot_{self.screenshot_count:04d}.png"
             screenshot.save(filepath)
         
@@ -63,9 +63,9 @@ class ScreenshotCapture:
             PIL Image object containing the screenshot of the region
         """
         screenshot = pyautogui.screenshot(region=(x, y, width, height))
+        self.screenshot_count += 1
         
         if self.save_screenshots:
-            self.screenshot_count += 1
             filepath = self.output_dir / f"screenshot_region_{self.screenshot_count:04d}.png"
             screenshot.save(filepath)
         
