@@ -17,7 +17,7 @@ This guide will help you get started with Playtester and understand how to use i
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/dmccoystephenson/playtester.git
+   git clone https://github.com/Preponderous-Software/playtester.git
    cd playtester
    ```
 
@@ -263,6 +263,6 @@ For advanced features like integrating actual AI models, see:
 
 ## Getting Help
 
-- [GitHub Issues](https://github.com/dmccoystephenson/playtester/issues) - Bug reports and feature requests
+- [GitHub Issues](https://github.com/Preponderous-Software/playtester/issues) - Bug reports and feature requests
 - [Documentation](docs/README.md) - Complete documentation
 - [Examples](examples/) - Working code examples

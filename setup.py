@@ -10,7 +10,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Daniel McCoy Stephenson",
-    url="https://github.com/dmccoystephenson/playtester",
+    url="https://github.com/Preponderous-Software/playtester",
     license="MIT",
     packages=find_packages(where="src"),
     package_dir={"": "src"},

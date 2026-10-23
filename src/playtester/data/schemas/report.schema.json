@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/dmccoystephenson/playtester/src/playtester/data/schemas/report.schema.json",
+  "$id": "https://github.com/Preponderous-Software/playtester/src/playtester/data/schemas/report.schema.json",
   "title": "Playtest report",
   "description": "What one playtesting agent writes to report.json in its session directory (docs/AGENT_PLAYTESTING.md). Checked by `pt report` and read by `pt aggregate`.",
   "type": "object",

@@ -48,7 +48,7 @@ def __getattr__(name):
             if missing in _AUTOMATION_PACKAGES:
                 raise ImportError(
                     "playtester.%s needs the automation extra (missing %s): "
-                    'pip install "playtester[automation] @ git+https://github.com/dmccoystephenson/playtester", '
+                    'pip install "playtester[automation] @ git+https://github.com/Preponderous-Software/playtester", '
                     'or pip install -e ".[automation]" in a checkout' % (name, missing),
                     name=missing) from e
             raise
