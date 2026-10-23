@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/dmccoystephenson/playtester/src/playtester/data/schemas/event.schema.json",
+  "$id": "https://github.com/Preponderous-Software/playtester/src/playtester/data/schemas/event.schema.json",
   "title": "Probe event (one line of events.jsonl)",
   "description": "Every event has type, tick and wallTimeMs. The standard types below have required fields; games may add fields to them and add types of their own (docs/PROBE_CONTRACT.md).",
   "type": "object",

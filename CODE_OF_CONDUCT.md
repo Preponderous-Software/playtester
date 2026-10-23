@@ -63,7 +63,7 @@ reported to the community leaders responsible for enforcement privately, through
 GitHub: contact the maintainer
 ([@dmccoystephenson](https://github.com/dmccoystephenson)) through GitHub, or
 use the repository's
-[private vulnerability reporting](https://github.com/dmccoystephenson/playtester/security/advisories/new)
+[private vulnerability reporting](https://github.com/Preponderous-Software/playtester/security/advisories/new)
 form if the matter must stay confidential. Please do not report conduct issues
 in a public issue.
 All complaints will be reviewed and investigated promptly and fairly.

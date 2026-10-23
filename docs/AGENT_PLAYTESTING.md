@@ -40,7 +40,7 @@ Linux (or WSL2) with Python 3.8 or newer, and:
 ```bash
 sudo apt-get install -y xvfb xdotool imagemagick libgl1-mesa-dri
 pip install -e .            # from a playtester checkout; gives `pt` and `playtester`
-# or, without a checkout: pip install git+https://github.com/dmccoystephenson/playtester
+# or, without a checkout: pip install git+https://github.com/Preponderous-Software/playtester
 pt profiles
 PT_ROOT=/tmp/pt-try pt smoke --profile demo     # PASS proves the machine can run the kit
 ```

@@ -82,7 +82,7 @@ for cycle_info in automator.run_continuous(max_cycles=100):
 
 ```bash
 # Clone the repository
-git clone https://github.com/dmccoystephenson/playtester.git
+git clone https://github.com/Preponderous-Software/playtester.git
 cd playtester
 
 # Install in development mode, with the automation framework's dependencies
@@ -254,4 +254,4 @@ Contributions are welcome! Please see CONTRIBUTING.md for guidelines.
 ## Support
 
 For issues, questions, or contributions, please visit:
-https://github.com/dmccoystephenson/playtester
+https://github.com/Preponderous-Software/playtester

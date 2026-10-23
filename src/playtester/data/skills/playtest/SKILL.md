@@ -9,7 +9,7 @@ PROFILE={{PROFILE}}
 
 You coordinate; subagents play. The harness, the agent prompt, the report
 schema and the aggregator come from **playtester**
-(`pip install git+https://github.com/dmccoystephenson/playtester`, or
+(`pip install git+https://github.com/Preponderous-Software/playtester`, or
 `pip install -e <checkout>`; it is not on PyPI, and its
 docs/AGENT_PLAYTESTING.md explains the kit). This game's profile is `$PROFILE` (`pt profiles` lists the bundled
 ones; a path to a profile JSON file works too). Do not play yourself and do

@@ -6,8 +6,8 @@ Thank you for your interest in contributing to Playtester! This guide will help 
 
 ## Links
 
-- [GitHub Repository](https://github.com/dmccoystephenson/playtester)
-- [Issues](https://github.com/dmccoystephenson/playtester/issues)
+- [GitHub Repository](https://github.com/Preponderous-Software/playtester)
+- [Issues](https://github.com/Preponderous-Software/playtester/issues)
 - [Documentation](docs/README.md)
 
 ## Requirements
@@ -47,7 +47,7 @@ Thank you for your interest in contributing to Playtester! This guide will help 
 
 ### Issues
 
-Work items are tracked as [GitHub issues](https://github.com/dmccoystephenson/playtester/issues).
+Work items are tracked as [GitHub issues](https://github.com/Preponderous-Software/playtester/issues).
 
 ## Making Changes
 
@@ -165,7 +165,7 @@ print("Tests passed!")
 
 ## Questions
 
-If you have questions, file an [issue](https://github.com/dmccoystephenson/playtester/issues).
+If you have questions, file an [issue](https://github.com/Preponderous-Software/playtester/issues).
 
 ## Code of Conduct and Security
 

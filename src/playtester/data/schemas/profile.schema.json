@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/dmccoystephenson/playtester/src/playtester/data/schemas/profile.schema.json",
+  "$id": "https://github.com/Preponderous-Software/playtester/src/playtester/data/schemas/profile.schema.json",
   "title": "Playtester game profile",
   "description": "Everything the harness needs to know about one game (docs/PROFILES.md).",
   "type": "object",

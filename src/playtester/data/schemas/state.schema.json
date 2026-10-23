@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/dmccoystephenson/playtester/src/playtester/data/schemas/state.schema.json",
+  "$id": "https://github.com/Preponderous-Software/playtester/src/playtester/data/schemas/state.schema.json",
   "title": "Probe state.json",
   "description": "The snapshot a probe-capable game rewrites about twice a second (docs/PROBE_CONTRACT.md). The core fields are required; everything else is optional, and games may add their own top-level fields.",
   "type": "object",

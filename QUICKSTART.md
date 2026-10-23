@@ -9,7 +9,7 @@
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/dmccoystephenson/playtester.git
+git clone https://github.com/Preponderous-Software/playtester.git
 cd playtester
 ```
 
@@ -205,5 +205,5 @@ pip install -e .
 ## Support
 
 - Documentation: See `docs/` directory
-- Issues: https://github.com/dmccoystephenson/playtester/issues
+- Issues: https://github.com/Preponderous-Software/playtester/issues
 - Examples: See `examples/` directory

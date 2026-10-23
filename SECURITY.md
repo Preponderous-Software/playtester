@@ -12,7 +12,7 @@ Please do **not** open a public issue for a security problem.
 Report it privately through GitHub's private vulnerability reporting:
 open the repository's **Security** tab and choose **Report a vulnerability**
 (or go straight to
-[the advisory form](https://github.com/dmccoystephenson/playtester/security/advisories/new)).
+[the advisory form](https://github.com/Preponderous-Software/playtester/security/advisories/new)).
 Include what you found, how to reproduce it, and what an attacker could do
 with it.
 

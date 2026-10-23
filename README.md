@@ -17,10 +17,10 @@ You need Linux (or WSL2) with Python 3.8 or newer; no desktop is needed. The kit
 # system tools: a virtual X server, input, screenshots, software OpenGL
 sudo apt-get install -y xvfb xdotool imagemagick libgl1-mesa-dri
 
-git clone https://github.com/dmccoystephenson/playtester.git
+git clone https://github.com/Preponderous-Software/playtester.git
 cd playtester
 pip install -e .                   # gives the `pt` command (also `python -m playtester`)
-# or, without a checkout: pip install git+https://github.com/dmccoystephenson/playtester
+# or, without a checkout: pip install git+https://github.com/Preponderous-Software/playtester
 
 pt profiles                        # the bundled game profiles
 PT_ROOT=/tmp/pt-try pt smoke --profile demo
@@ -142,14 +142,14 @@ for cycle in automator.run_continuous(max_cycles=20):
 
 ### Experiencing a bug?
 
-Please file a bug report [here](https://github.com/dmccoystephenson/playtester/issues/new).
+Please file a bug report [here](https://github.com/Preponderous-Software/playtester/issues/new).
 
-- [Known Issues](https://github.com/dmccoystephenson/playtester/issues)
+- [Known Issues](https://github.com/Preponderous-Software/playtester/issues)
 
 ### Questions?
 
 - [Documentation](docs/AGENT_PLAYTESTING.md) for the agent kit, [docs/README.md](docs/README.md) for the automation framework
-- Ask in a [GitHub issue](https://github.com/dmccoystephenson/playtester/issues)
+- Ask in a [GitHub issue](https://github.com/Preponderous-Software/playtester/issues)
 
 ### Security
 
@@ -159,7 +159,7 @@ Report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) – How to contribute to this project
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) – How we treat each other
-- [GitHub Issues](https://github.com/dmccoystephenson/playtester/issues) – Find something to work on
+- [GitHub Issues](https://github.com/Preponderous-Software/playtester/issues) – Find something to work on
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed information on how to contribute to this project.
 
