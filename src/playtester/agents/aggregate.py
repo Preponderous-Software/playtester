@@ -418,14 +418,21 @@ def aggregate(run_dir: str, ticks_per_second: Optional[float] = None,
 def main(argv: List[str]) -> int:
     args = list(argv[1:])
     tps, default_profile = None, None
-    if "--ticks-per-second" in args:
-        i = args.index("--ticks-per-second")
-        tps = float(args[i + 1])
-        del args[i:i + 2]
-    if "--profile" in args:
-        i = args.index("--profile")
-        default_profile = args[i + 1]
-        del args[i:i + 2]
+    for flag in ("--ticks-per-second", "--profile"):
+        if flag in args:
+            i = args.index(flag)
+            if i + 1 >= len(args):
+                print("aggregate: %s needs a value" % flag, file=sys.stderr)
+                return 2
+            if flag == "--profile":
+                default_profile = args[i + 1]
+            else:
+                try:
+                    tps = float(args[i + 1])
+                except ValueError:
+                    print("aggregate: --ticks-per-second needs a number, not %r" % args[i + 1], file=sys.stderr)
+                    return 2
+            del args[i:i + 2]
     if len(args) != 1 or not os.path.isdir(args[0]):
         print(__doc__.strip())
         return 2

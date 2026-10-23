@@ -27,17 +27,19 @@ Thank you for your interest in contributing to Playtester! This guide will help 
    git clone https://github.com/<your-username>/playtester.git
    cd playtester
    ```
-4. Install dependencies:
+4. Install the system tools the agent playtest kit and the tests use (Debian/Ubuntu):
    ```bash
-   pip install -r requirements.txt
+   sudo apt-get install xvfb xauth xdotool imagemagick libgl1-mesa-dri scrot
    ```
-5. Install the package in development mode:
+5. Install the package in development mode. The agent playtest kit needs no
+   Python packages; the `automation` extra adds pillow, pyautogui and pynput for
+   the experimental screenshot automation framework:
    ```bash
-   pip install -e .
+   pip install -e ".[automation]"
    ```
 6. Verify the installation:
    ```bash
-   python -c "import playtester; print('Success!')"
+   python -m unittest discover -s tests -t .
    ```
    If you encounter errors, please open an issue.
 
@@ -46,10 +48,6 @@ Thank you for your interest in contributing to Playtester! This guide will help 
 ### Issues
 
 Work items are tracked as [GitHub issues](https://github.com/dmccoystephenson/playtester/issues).
-
-### Milestones
-
-Issues are grouped into [milestones](https://github.com/dmccoystephenson/playtester/milestones) representing upcoming releases.
 
 ## Making Changes
 
@@ -88,23 +86,32 @@ If your change adds or modifies user-facing features, update the relevant docume
 
 ## Testing
 
+### The test suite
+
+Run the unit and end-to-end tests (the end-to-end tests play the bundled demo
+game in real virtual displays, so they need the system tools from
+[Getting Started](#getting-started)):
+
+```bash
+python -m unittest discover -s tests -t .
+```
+
+### Code Verification
+
+Verify Python syntax (the same command CI runs):
+
+```bash
+python -m py_compile src/playtester/*.py src/playtester/*/*.py examples/*.py ci/*.py tests/*.py
+```
+
 ### Manual Testing
 
-Test your changes by running the example scripts:
+The automation framework's example scripts need a display environment (X11,
+Wayland, or similar) and the `automation` extra:
 
 ```bash
 cd examples
 python basic_example.py
-```
-
-Note: Examples require a display environment (X11, Wayland, or similar).
-
-### Code Verification
-
-Verify Python syntax:
-
-```bash
-python -m py_compile src/playtester/*.py src/playtester/games/*.py examples/*.py
 ```
 
 ### Continuous Integration
@@ -126,8 +133,10 @@ XDG_SESSION_TYPE=x11 xvfb-run -a -s "-screen 0 1280x720x24" python ci/smoke_test
 
 ### Testing Without Display
 
-Importing any `playtester` module runs the package `__init__.py`, which imports
-`pyautogui`; on Linux that needs an X display at import time and fails with
+`import playtester`, the agent playtest kit and `playtester.ai_decision_engine`
+need no display. The modules that import `pyautogui` do: `action_executor` and
+`screenshot_capture` (and so `game_automator` and `games`, which import them).
+On Linux pyautogui needs an X display at import time and fails with
 `KeyError: 'DISPLAY'` when none is available. In a headless environment, run the
 script below under `xvfb-run` (as above) to test the core logic:
 
@@ -156,6 +165,10 @@ print("Tests passed!")
 
 ## Questions
 
-If you have questions:
-- Open a [GitHub Discussion](https://github.com/dmccoystephenson/playtester/discussions)
-- File an [issue](https://github.com/dmccoystephenson/playtester/issues)
+If you have questions, file an [issue](https://github.com/dmccoystephenson/playtester/issues).
+
+## Code of Conduct and Security
+
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). Please report
+security problems privately as described in [SECURITY.md](SECURITY.md), not in
+a public issue.

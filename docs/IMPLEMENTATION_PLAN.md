@@ -72,7 +72,7 @@ Use a local open-source vision-language model:
    - Good few-shot learning capabilities
 
 **Implementation Steps**:
-1. Add model dependencies to `requirements.txt`
+1. Add model dependencies to the `automation` extra (`setup.py`, mirrored in `requirements.txt`)
 2. Create model loader and initialization code
 3. Implement image preprocessing for model input
 4. Create prompt templates for game decision-making
@@ -203,8 +203,10 @@ def execute_and_verify(self, action, timeout=5.0):
 ## Testing Strategy
 
 ### Current Testing Approach
+- `ci/smoke_test.py`, run in CI under Xvfb: real screenshots of a virtual screen and four automation cycles with the mocked engine and executor
 - Manual testing with example scripts
 - Mocked components for integration testing
+- (The agent playtest kit has its own unit and end-to-end suite in `tests/`.)
 
 ### Future Testing Requirements
 

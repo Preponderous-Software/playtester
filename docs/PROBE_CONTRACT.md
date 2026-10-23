@@ -81,7 +81,7 @@ top-level field, compactly.
 Example (Beyond Nations, abridged):
 
 ```json
-{"wallTimeMs":1792642042971,"version":"0.4.1","screen":"WORLD","fps":13,"world":true,"tps":49.8,
+{"wallTimeMs":1792642042971,"version":"0.5.0","screen":"WORLD","fps":13,"world":true,"tps":49.8,
  "openPanels":["chronicle-recent","tip"],"seed":42,"tick":1420,"era":"Camp",
  "player":{"x":117.63,"z":14.23,"yawDeg":64,"speed":25,"alive":true},
  "objective":{"number":1,"title":"Gather wood","progress":"Wood 4/10","completed":0},

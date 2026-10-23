@@ -33,7 +33,9 @@ Probe commands (games with a probe; docs/PROBE_CONTRACT.md)
   walkto KIND [MAXSEC]      walk to the nearest KIND until it is within reach
   probe-check [DIR]         validate state.json and events.jsonl against the probe contract
 Run commands
-  smoke [--profile P] [--game-dir D]   scripted session proving the harness on this machine
+  smoke [--profile P] [--game-dir D] [--session NAME] [--keep]
+                            scripted session proving the harness on this machine
+                            (its own session, smoke-<pid> by default; --keep leaves it running)
   measure N [SETTLE] [SAMPLE] [--brief]  cost of N concurrent sessions
   prompt ...                fill the agent prompt for one session (pt prompt for its options)
   aggregate RUN_DIR         merge a run's reports into summary.md and summary.json
@@ -293,9 +295,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     except (HarnessError, profiles.ProfileError, RuntimeError) as e:
         print("pt: %s" % e, file=sys.stderr)
         return 1
-    except ValueError as e:
-        print("pt %s: bad argument: %s" % (cmd, e), file=sys.stderr)
+    except (ValueError, IndexError) as e:
+        print("pt %s: bad or missing argument: %s" % (cmd, e), file=sys.stderr)
         return 2
+    except KeyError as e:
+        print("pt %s: missing field %s (in the game's probe output or the profile; see docs/PROBE_CONTRACT.md"
+              " and docs/PROFILES.md)" % (cmd, e), file=sys.stderr)
+        return 1
     except KeyboardInterrupt:
         return 130
 

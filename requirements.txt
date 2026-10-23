@@ -1,3 +1,8 @@
+# The agent playtest kit (the pt command) needs no Python packages: it is
+# standard-library Python plus Xvfb, xdotool and ImageMagick.
+#
+# These are for the experimental screenshot automation framework only; the
+# same as: pip install -e ".[automation]"
 pillow>=10.0.0
 pyautogui>=0.9.54
 pynput>=1.7.6

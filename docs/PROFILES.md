@@ -21,6 +21,7 @@ checks one against [`profile.schema.json`](../src/playtester/data/schemas/profil
 | `description` | yes | One phrase agents read first ("a 3D colony-and-nations game: ...") |
 | `repository` | | `owner/name`, for issues and evidence |
 | `build.command` | | Shell command run in the game's checkout that builds what `launch.command` runs |
+| `build.requires` | | The toolchain the build needs, a list of commands (e.g. `["dotnet"]`); `pt validate-profile` prints it |
 | `launch.command` | yes | The executable and fixed arguments, a list |
 | `launch.args` | | More arguments, always passed (window size, data directory) |
 | `launch.cwd` | | Working directory (default the session directory) |
@@ -83,7 +84,10 @@ A script of `pt` commands, run by `pt smoke` after starting the game with
 Every step must succeed; then the `until` steps repeat until an event with
 all of `event`'s fields appears in `events.jsonl` (a failing `may_fail`
 command just ends that attempt). It prints `PASS` or `FAIL` with the log
-tail and a `fail.png`, and always stops its session.
+tail and a `fail.png`. It runs in its own session (`smoke-<pid>` unless
+`--session NAME` is given; `$PT_SESSION` is ignored), never touches a session
+of that name that is already running, and stops the session it started when
+it finishes, unless `--keep` asks it to leave the game running.
 
 ## Adding a game
 

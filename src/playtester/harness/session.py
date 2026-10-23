@@ -14,6 +14,12 @@ Everything a session owns lives in ``$PT_ROOT/$PT_SESSION``::
     game.log, xvfb.log
     display, game.pid, xvfb.pid, window   while running
 
+A pid file holds the pid and the process's start time (``PID START``, the
+start time being field 22 of ``/proc/PID/stat``). Before signalling a pid the
+harness checks the start time still matches, so a stale pid file left behind
+by a crash or a reboot never signals an unrelated process that has since been
+given the same pid.
+
 Only the X display number is shared between sessions, and it is claimed under
 an exclusive ``flock`` so simultaneous starts never pick the same one.
 """
@@ -27,7 +33,7 @@ import signal
 import subprocess
 import tempfile
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from . import profile as profiles
 from . import xdo
@@ -82,6 +88,56 @@ def pid_alive(pid: Optional[int]) -> bool:
         return True
 
 
+def proc_start_time(pid: int) -> Optional[str]:
+    """The start time of ``pid`` (field 22 of /proc/PID/stat, in clock ticks since boot), or None."""
+    try:
+        with open("/proc/%d/stat" % pid) as f:
+            # the command name (field 2) is in parentheses and may contain spaces
+            fields = f.read().rsplit(")", 1)[1].split()
+        return fields[19]
+    except (OSError, IndexError, ValueError):
+        return None
+
+
+def proc_cmdline(pid: int) -> str:
+    """The command line of ``pid`` with its arguments joined by spaces ("" if unknown)."""
+    try:
+        with open("/proc/%d/cmdline" % pid, "rb") as f:
+            return f.read().replace(b"\0", b" ").decode("utf-8", "replace").strip()
+    except OSError:
+        return ""
+
+
+def parse_pid_file(text: Optional[str]) -> Tuple[Optional[int], Optional[str]]:
+    """``(pid, start_time)`` from a pid file's text; start_time is None in old files that hold only the pid."""
+    parts = (text or "").split()
+    try:
+        pid = int(parts[0]) if parts else None
+    except ValueError:
+        return None, None
+    return pid, (parts[1] if len(parts) > 1 else None)
+
+
+def pid_file_text(pid: int) -> str:
+    start = proc_start_time(pid)
+    return "%d %s" % (pid, start) if start else str(pid)
+
+
+def same_process(pid: Optional[int], start_time: Optional[str], expected: List[str]) -> bool:
+    """Whether the live process ``pid`` is the one the pid file recorded.
+
+    With a recorded start time, the process's start time must match. An old
+    pid file without one is trusted only when the process's command line
+    contains one of ``expected`` (for example the game's executable).
+    """
+    if not pid_alive(pid):
+        return False
+    if start_time is not None:
+        return proc_start_time(pid) == start_time
+    cmdline = proc_cmdline(pid)
+    return bool(cmdline) and any(e and e in cmdline for e in expected)
+
+
 def tail(path: str, lines: int = 25) -> str:
     try:
         with open(path, encoding="utf-8", errors="replace") as f:
@@ -119,11 +175,28 @@ class Session:
             return None
 
     def _pid(self, name: str) -> Optional[int]:
-        value = self._read(name + ".pid")
-        try:
-            return int(value) if value else None
-        except ValueError:
+        """The pid recorded in NAME.pid, if that process is still the one the session started."""
+        pid, start_time = parse_pid_file(self._read(name + ".pid"))
+        if pid is None:
             return None
+        return pid if same_process(pid, start_time, self._expected_commands(name)) else None
+
+    def _expected_commands(self, name: str) -> List[str]:
+        """What the command line of an old-style pid file's process must contain."""
+        if name == "xvfb":
+            return ["Xvfb"]
+        expected = []
+        command = self.info().get("command")
+        if isinstance(command, list) and command:
+            expected.append(str(command[0]))
+        saved = read_json(self.path("profile.json")) or {}
+        if saved.get("process_name"):
+            expected.append(str(saved["process_name"]).strip())
+        return expected
+
+    def _write_pid(self, name: str, pid: int) -> None:
+        with open(self.path(name + ".pid"), "w") as f:
+            f.write(pid_file_text(pid))
 
     @property
     def window(self) -> Optional[str]:
@@ -192,8 +265,7 @@ class Session:
                     proc = subprocess.Popen(
                         ["Xvfb", ":%d" % number, "-screen", "0", "%dx%dx24" % (width + 64, height + 64), "-nolisten", "tcp"],
                         stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, env=env, start_new_session=True)
-                with open(self.path("xvfb.pid"), "w") as f:
-                    f.write(str(proc.pid))
+                self._write_pid("xvfb", proc.pid)
                 with open(self.path("display"), "w") as f:
                     f.write(str(number))
                 for _ in range(80):
@@ -246,8 +318,7 @@ class Session:
             with open(self.path("game.log"), "w") as log:
                 game = subprocess.Popen(plan["command"], cwd=plan["cwd"], env=env, stdin=subprocess.DEVNULL,
                                         stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
-            with open(self.path("game.pid"), "w") as f:
-                f.write(str(game.pid))
+            self._write_pid("game", game.pid)
             window = self._await_window(profile, game, use_probe, env)
             with open(self.path("window"), "w") as f:
                 f.write(window)
@@ -300,10 +371,14 @@ class Session:
                            % (self.name, why, self.path("game.log"), tail(self.path("game.log"))))
 
     def stop(self) -> None:
-        """Stops the game, then its Xvfb. Safe to repeat."""
+        """Stops the game, then its Xvfb. Safe to repeat.
+
+        Only signals a process that is still the one this session started
+        (see ``same_process``); a stale pid file is just removed.
+        """
         for name, grace in (("game", 5.0), ("xvfb", 3.0)):
             pid = self._pid(name)
-            if pid and pid_alive(pid):
+            if pid:
                 _terminate(pid, grace)
             try:
                 os.remove(self.path(name + ".pid"))

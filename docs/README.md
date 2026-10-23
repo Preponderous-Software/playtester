@@ -85,11 +85,8 @@ for cycle_info in automator.run_continuous(max_cycles=100):
 git clone https://github.com/dmccoystephenson/playtester.git
 cd playtester
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Install in development mode
-pip install -e .
+# Install in development mode, with the automation framework's dependencies
+pip install -e ".[automation]"
 ```
 
 ## Quick Start

@@ -15,23 +15,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Coordinator skill for Claude Code (`pt install-skill`)
 - `playtester.demo`: a tiny X11 game implementing the probe, used by the end-to-end tests
 - Unit and end-to-end test suite (`tests/`), run in CI
+- CONTRIBUTING.md with contribution guidelines
+- USER_GUIDE.md with comprehensive usage instructions
+- CHANGELOG.md for tracking changes
+- GitHub Actions workflows for CI/CD
+- Copilot instructions for AI assistants
+- `ci/smoke_test.py`, run by the `Build` workflow under Xvfb: captures screenshots of a virtual screen and runs four mocked automation cycles
+- CLAUDE.md with project context for Claude Code
+- CODE_OF_CONDUCT.md (Contributor Covenant 2.1), SECURITY.md, issue templates and a pull request template
+- `pyproject.toml` declaring the setuptools build backend, and `MANIFEST.in` so the source distribution includes the whole test suite
+- `pt smoke --keep` leaves the smoke session running for inspection (it was accepted and ignored before)
 
 ### Changed
 - Relicensed from GPL-3.0 to MIT
 - `import playtester` no longer needs a display: the automation classes are loaded lazily on first use (`from playtester import GameAutomator` works as before)
-- Alignment with DPC (Dans Plugins Community) conventions
-- CONTRIBUTING.md with contribution guidelines
-- USER_GUIDE.md with comprehensive usage instructions
-- CHANGELOG.md for tracking changes
-- LICENSE file (GPL-3.0)
-- GitHub Actions workflows for CI/CD
-- Copilot instructions for better AI assistance
-- `ci/smoke_test.py`, run by the `Build` workflow under Xvfb: captures screenshots of a virtual screen and runs four mocked automation cycles
-- CLAUDE.md with project context for Claude Code
+- Installing playtester no longer installs any Python packages: the agent playtest kit is standard-library Python. pillow, pyautogui and pynput, needed only by the experimental screenshot automation framework, moved to the `automation` extra (`pip install -e ".[automation]"`); using an automation class without it raises an `ImportError` that names the extra. The empty `headless` extra was removed
+- `pt smoke` runs in its own session (`smoke-<pid>` unless `--session` names one) instead of `$PT_SESSION`, refuses to touch a session of that name that is already running, and stops only a session it started
+- Pid files record each process's start time; `pt stop` (and every check of whether a session is running) signals a pid only while it still belongs to the process the session started, so a stale pid file never signals an unrelated process
 
 ### Fixed
+- `pt` reports a missing field in a profile or the game's probe output, and a flag without its value, as an error message instead of a traceback; so does `pt aggregate`
+- Documentation: the shipped `/playtest` skill installs playtester from GitHub (it is not on PyPI); the README leads with the agent kit, a first run against the bundled demo game, and how to get and build the bundled games; dead GitHub Discussions links and the outdated SUMMARY.md were removed
 - `Build` workflow: the import check now runs under Xvfb (it failed with `KeyError: 'DISPLAY'` on every run before); the job is now named `test`
-- Documentation: the "testing without a display" instructions in QUICKSTART.md and CONTRIBUTING.md now say that importing `playtester` needs an X display (use `xvfb-run`); the Error Handling section of docs/API_REFERENCE.md describes what the code actually does; `get_stats()` documents that `screenshots_taken` only counts saved screenshots; README.md and CONTRIBUTING.md describe the CI checks
+- Documentation: the "testing without a display" instructions in QUICKSTART.md and CONTRIBUTING.md now say which modules need an X display (those that import pyautogui: `action_executor` and `screenshot_capture`, and so `game_automator` and `games`); the Error Handling section of docs/API_REFERENCE.md describes what the code actually does; `get_stats()` documents that `screenshots_taken` only counts saved screenshots; README.md and CONTRIBUTING.md describe the CI checks
 
 ## [0.1.0] - 2025-12-28
 

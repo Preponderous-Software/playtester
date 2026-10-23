@@ -21,22 +21,25 @@ Playtester has two independent parts:
 ## Technology stack
 
 - Python >= 3.8 (`setup.py` `python_requires`; CI pins 3.8)
-- `pillow>=10.0.0`, `pyautogui>=0.9.54`, `pynput>=1.7.6` (`requirements.txt`, mirrored in `setup.py` `install_requires`)
-- setuptools, `src/` layout (`package_dir={"": "src"}`)
+- No runtime dependencies (`install_requires=[]`): the agent kit is standard-library Python
+- The `automation` extra: `pillow>=10.0.0`, `pyautogui>=0.9.54`, `pynput>=1.7.6`
+  (`setup.py` `extras_require["automation"]`, mirrored in `requirements.txt`)
+- setuptools (`pyproject.toml` `[build-system]`, metadata in `setup.py`), `src/` layout (`package_dir={"": "src"}`)
 - GitHub Actions: `.github/workflows/build.yml` (job `test`; push to main, every PR), `.github/workflows/release.yml` (on release created, `python -m build`)
 
 ## Build and run commands
 
 ```bash
-pip install -r requirements.txt
-pip install -e .
+pip install -e .                 # the agent kit: no Python dependencies
+pip install -e ".[automation]"   # plus the automation framework's dependencies
 
 # Example scripts (need a real display: X11, Wayland, Windows or macOS)
 cd examples
 python basic_example.py      # also roam_example.py, ophidian_example.py
 ```
 
-On this machine bare `python` is Python 2; use `python3` (3.8) explicitly.
+Where bare `python` is not Python 3 (some systems still ship Python 2 under
+that name), use `python3` explicitly.
 
 ## Test commands
 
@@ -90,7 +93,7 @@ src/playtester/
 examples/                  Runnable scripts: basic, roam, ophidian
 tests/                     unittest suite; fixtures/run is a recorded three-session run
 docs/                      AGENT_PLAYTESTING.md, PROFILES.md, PROBE_CONTRACT.md, API_REFERENCE.md, ARCHITECTURE.md, IMPLEMENTATION_PLAN.md, README.md
-README.md, USER_GUIDE.md, QUICKSTART.md, SUMMARY.md, CHANGELOG.md, CONTRIBUTING.md
+README.md, USER_GUIDE.md, QUICKSTART.md, CHANGELOG.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md
 ```
 
 ## Architecture notes
@@ -126,7 +129,8 @@ README.md, USER_GUIDE.md, QUICKSTART.md, SUMMARY.md, CHANGELOG.md, CONTRIBUTING.
 - Update `README.md` / `docs/API_REFERENCE.md` / `docs/IMPLEMENTATION_PLAN.md`
   when public behaviour or the API changes (per `CONTRIBUTING.md`), and add a
   `CHANGELOG.md` entry.
-- Keep `requirements.txt` and `setup.py` `install_requires` in sync.
+- Keep `requirements.txt` and `setup.py` `extras_require["automation"]` in sync;
+  keep `install_requires` empty.
 - Run the `py_compile` check before pushing.
 
 **Don't:**
