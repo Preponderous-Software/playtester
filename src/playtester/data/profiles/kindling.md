@@ -9,7 +9,7 @@ hides or shows it.
 | Shift (`Shift_L`) | hurry |
 | 1 to 9 | take a tool: broom, scrub brush, shovel, saw, pry bar, hammer, axe, matches, curry comb (`` ` `` for bare hands; the xdotool name is `grave`) |
 | Left mouse held (`pt mousehold 3`) | work with the tool on what the crosshair is on; with a plank or shingles in hand, work them in |
-| E | pick up or put down (debris put down outdoors is hauled out; furnishings go where they belong; E at the wagon puts a thing back) |
+| E | pick up or put down (debris put down outdoors, or inside by the door, is hauled out; furnishings go where they belong; planks and shingles come off the wagon as one stack; E at the wagon puts a thing, or the stack, back) |
 | R | turn what you carry |
 | L | light or put out your lantern |
 | T | play the restoration back again, once the settler is home |
@@ -30,6 +30,15 @@ Practical notes:
   door first).
 - What the crosshair is on is named at the centre of the screen; the work you
   are doing shows progress there.
+- Aiming is forgiving where a target is small: E takes the piece of debris
+  in reach nearest the crosshair (within about 12 degrees), the shovel works
+  anywhere on the snow drift's full footprint, and the ceiling close around an
+  open section of the roof hole counts as the hole. Report a target that still
+  needs an exact aim.
+- Furnishings stay on the wagon until the cabin is mended (the Repair step is
+  done); the crosshair says so.
+- The day runs from late morning to dusk over about an hour of play. When the
+  light goes the game suggests the lantern (L); it is worth lighting indoors.
 - The restoration goes in steps (survey, clear, repair, furnish, kindle); the
   checklist in the corner says what is next.
 - There is no combat and no way to lose.
