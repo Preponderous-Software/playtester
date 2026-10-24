@@ -76,6 +76,23 @@ class BuildCheckTest(unittest.TestCase):
         self.assertIs(check["dirty"], True)
         self.assertEqual(check["warnings"], [])
 
+    def test_a_game_dir_below_the_top_of_the_checkout_finds_its_edits(self):
+        game = os.path.join(self.repo, "game")
+        os.makedirs(game)
+        source = os.path.join(game, "main.c")
+        with open(source, "w") as f:
+            f.write("int main(void) { return 0; }\n")
+        git(self.repo, "add", "game/main.c")
+        git(self.repo, "commit", "-q", "-m", "second")
+        binary = os.path.join(game, "build-out")
+        touch(binary, time.time() + 60)
+        with open(source, "a") as f:
+            f.write("/* edited */\n")
+        os.utime(source, (time.time() + 120, time.time() + 120))
+        check = build_check(game, binary)
+        self.assertEqual(len(check["warnings"]), 1)
+        self.assertIn("uncommitted edits to game/main.c", check["warnings"][0])
+
     def test_untracked_files_do_not_make_the_checkout_dirty(self):
         touch(self.binary, self.committed + 60)
         touch(os.path.join(self.repo, "notes.txt"), time.time())

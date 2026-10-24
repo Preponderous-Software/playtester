@@ -472,11 +472,14 @@ def build_check(game_dir: str, artifact: Optional[str]) -> Dict[str, Any]:
     status = _git(game_dir, "status", "--porcelain", "--untracked-files=no")
     dirty = None if status is None else bool(status.strip())
     if dirty and built is not None:
+        # porcelain paths are relative to the top of the checkout, which
+        # game_dir need not be
+        top = (_git(game_dir, "rev-parse", "--show-toplevel") or "").strip() or game_dir
         edited = []
         for line in status.splitlines():
             path = line[3:].split(" -> ")[-1].strip('"')
             try:
-                if os.path.getmtime(os.path.join(game_dir, path)) > built:
+                if os.path.getmtime(os.path.join(top, path)) > built:
                     edited.append(path)
             except OSError:
                 pass
