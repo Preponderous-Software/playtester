@@ -9,7 +9,7 @@ import unittest
 
 from tests.helpers import FIXTURE_RUN  # noqa: F401  (puts src on sys.path)
 from playtester.agents import aggregate
-from playtester.agents.report import check_report
+from playtester.agents.report import check_report, unanswered
 from playtester.schema import load_schema, validate
 
 SCHEMA = load_schema("report.schema.json")
@@ -111,6 +111,67 @@ class EvidenceLayoutTest(unittest.TestCase):
             shutil.rmtree(tmp)
 
 
+QUESTIONS = ["What was the game about?", "Did anything feel preachy?"]
+
+
+class AnswersTest(unittest.TestCase):
+    """A profile's questions: answers are gathered by question; a missing one is a problem."""
+
+    @classmethod
+    def setUpClass(cls):
+        tmp = tempfile.mkdtemp(prefix="pt-answers-test-")
+        try:
+            run = os.path.join(tmp, "run")
+            shutil.copytree(FIXTURE_RUN, run)
+            profile = dict(aggregate._bundled_profile("beyond-nations"), questions=QUESTIONS)
+            for name in ("s01", "s02", "s03"):
+                with open(os.path.join(run, name, "profile.json"), "w", encoding="utf-8") as f:
+                    json.dump(profile, f)
+            answers = {
+                "s01": [{"question": QUESTIONS[0], "answer": "Building a village | through the seasons."},
+                        {"question": QUESTIONS[1], "answer": "No."}],
+                # the second question copied with different case and spacing, the first missing
+                "s02": [{"question": "  did anything feel PREACHY? ", "answer": "The chronicle, a little."}],
+            }
+            for name, given in answers.items():
+                path = os.path.join(run, name, "report.json")
+                with open(path, encoding="utf-8") as f:
+                    report = json.load(f)
+                report["answers"] = given
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(report, f)
+            cls.summary = aggregate.aggregate(run)
+            with open(os.path.join(run, "summary.md"), encoding="utf-8") as f:
+                cls.markdown = f.read()
+        finally:
+            shutil.rmtree(tmp)
+
+    def test_answers_are_grouped_under_each_question_in_the_profiles_order(self):
+        by_q = [(q["question"], [(a["session"], a["answer"]) for a in q["answers"]]) for q in self.summary["answers"]]
+        self.assertEqual(by_q, [
+            (QUESTIONS[0], [("s01", "Building a village | through the seasons."), ("s02", None), ("s03", None)]),
+            (QUESTIONS[1], [("s01", "No."), ("s02", "The chronicle, a little."), ("s03", None)]),
+        ])
+
+    def test_the_summary_shows_them_before_the_findings(self):
+        self.assertIn("## Answers", self.markdown)
+        self.assertLess(self.markdown.index("## Answers"), self.markdown.index("## Findings"))
+        self.assertIn("### Q1. What was the game about?", self.markdown)
+        self.assertIn("- **s01:** Building a village \\| through the seasons.", self.markdown)
+        self.assertIn("- **s02:** *(no answer)*", self.markdown)
+
+    def test_a_missing_answer_is_a_problem_and_makes_the_report_invalid(self):
+        self.assertIn("s02: report.json $.answers: no answer to question 1: What was the game about?",
+                      self.summary["problems"])
+        valid = {s["session"]: s["reportValid"] for s in self.summary["sessions"]}
+        self.assertEqual(valid, {"s01": True, "s02": False, "s03": False})
+
+    def test_a_run_without_questions_has_no_answers_section(self):
+        summary, markdown, _ = run_fixture()
+        self.assertEqual(summary["answers"], [])
+        self.assertNotIn("## Answers", markdown)
+
+
 class GroupingTest(unittest.TestCase):
     def similar(self, a, b):
         n = aggregate.normalise_title
@@ -183,6 +244,17 @@ class ReportTest(unittest.TestCase):
         bad = copy.deepcopy(GOOD)
         bad["fun"] = True
         self.assertEqual(validate(bad, SCHEMA), ["$.fun: expected integer, got bool"])
+
+    def test_answers_are_checked_against_the_questions(self):
+        ok = copy.deepcopy(GOOD)
+        ok["answers"] = [{"question": "Q one?", "answer": "A."}, {"question": "Q two?", "answer": "  "}]
+        self.assertEqual(validate(ok, SCHEMA), [])
+        self.assertEqual(unanswered(ok, ["Q one?", "Q two?", "Q three?"]),
+                         ["$.answers: no answer to question 2: Q two?", "$.answers: no answer to question 3: Q three?"])
+        self.assertEqual(unanswered(GOOD, []), [])
+        bad = copy.deepcopy(GOOD)
+        bad["answers"] = [{"question": "Q?"}]
+        self.assertEqual(validate(bad, SCHEMA), ["$.answers[0]: missing required 'answer'"])
 
     def test_a_game_without_a_probe_may_report_no_version_or_seed(self):
         ok = copy.deepcopy(GOOD)

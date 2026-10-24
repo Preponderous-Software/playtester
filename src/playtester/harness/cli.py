@@ -185,7 +185,11 @@ def run_session_command(session: Session, cmd: str, args: List[str]) -> int:
         print(session.dir)
     elif cmd == "report":
         from ..agents.report import main as report_main
-        return report_main(["report", session.path("report.json")])
+        try:
+            questions = session.profile().get("questions") or []
+        except profiles.ProfileError:
+            questions = []  # a report checked outside a session the harness started
+        return report_main(["report", session.path("report.json")], questions)
     elif cmd == "state":
         st = probe.read_state(session)
         if "--full" in args:

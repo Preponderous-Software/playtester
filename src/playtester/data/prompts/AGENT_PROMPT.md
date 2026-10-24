@@ -100,7 +100,7 @@ workable; **polish** cosmetic. Category: bug, ux, balance, perf, text, crash.
 Write each finding so that someone who was not there can reproduce it: what
 you did (ideally the `pt` commands), what you saw, what you expected{{TICK_HINT}}.
 
-## The report
+{{QUESTIONS}}## The report
 
 When done (or out of time, or blocked), `pt stop`, then write
 `{{RUN_DIR}}/{{SESSION}}/report.json`:

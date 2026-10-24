@@ -11,7 +11,7 @@ from playtester.agents.prompt import fill
 from playtester.harness import cli
 from playtester.harness import profile as profiles
 
-BUNDLED = ("beyond-nations", "demo", "kindling")
+BUNDLED = ("atman", "beyond-nations", "demo", "kindling")
 
 
 class ProfileTest(unittest.TestCase):
@@ -54,6 +54,19 @@ class ProfileTest(unittest.TestCase):
         self.assertNotIn("--playtest-out", plain["command"])
         self.assertNotIn("--seed", plain["command"])
 
+    def test_atman_is_screenshots_only_at_its_own_size(self):
+        p = profiles.load("atman")
+        self.assertIsNone(p["probe"])
+        self.assertIsNone(p["movement"])
+        self.assertEqual((p["window"]["width"], p["window"]["height"]), (1280, 720))
+        plan = profiles.launch_plan(p, "/games/atman", "/runs/r/s01", 1280, 720, "3", [], True)
+        self.assertEqual(plan["command"], [
+            "/games/atman/build/atman", "--width", "1280", "--height", "720",
+            "--slot", "/runs/r/s01/data", "--seed", "3"])
+        self.assertEqual(len(p["questions"]), 2)
+        self.assertIn("the rope and the snake, and the clay and the pots", p["questions"][0])
+        self.assertIn("preachy, confusing, or inaccurate", p["questions"][1])
+
     def test_the_demo_runs_on_this_interpreter(self):
         plan = profiles.launch_plan(profiles.load("demo"), "/g", "/s", 640, 360, "7", [], True)
         self.assertEqual(plan["command"][:3], [sys.executable, "-m", "playtester.demo"])
@@ -79,6 +92,19 @@ class PromptTest(unittest.TestCase):
         self.assertNotIn("`pt walkto KIND", text)
         self.assertIn("This game has no probe", text)
         self.assertIn('"seed": null', text)
+
+    def test_a_profile_with_questions_asks_them_and_one_without_does_not(self):
+        p = profiles.load("atman")
+        text = fill(p, "g", "s01", "/r", "1")
+        self.assertIn("## Questions to answer at the end", text)
+        for i, q in enumerate(p["questions"], 1):
+            self.assertIn("%d. %s" % (i, q), text)
+        self.assertIn('"answers": [', text)
+        self.assertLess(text.index("## Questions to answer"), text.index("## The report"))
+        self.assertIn("This game has no probe", text)
+        plain = fill(profiles.load("kindling"), "g", "s01", "/r", "1")
+        self.assertNotIn("Questions to answer", plain)
+        self.assertIn("\n\n## The report\n", plain)
 
     def test_text_seeds_are_quoted(self):
         self.assertIn('"seed": "Ironvale"', fill(profiles.load("beyond-nations"), "g", "s10", "/r", "Ironvale"))

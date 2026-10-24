@@ -43,6 +43,37 @@ often, and say in a finding when the screen does not tell a player
 something they need."""
 
 
+QUESTIONS = """## Questions to answer at the end
+
+Before you write the report, answer each of these in your own words, from
+what you saw, heard and read in the game itself (not from the game's
+documentation or source, and not from what you already knew about it). An
+honest "I could not tell" is a useful answer.
+
+{LIST}
+
+Put the answers in `report.json` as `answers`, one per question, with the
+question copied verbatim:
+
+```json
+"answers": [
+  {{"question": "<question 1, verbatim>", "answer": "<your answer>"}}
+]
+```
+
+`pt report` checks that every question has an answer.
+
+"""
+
+
+def questions_section(profile: Dict[str, Any]) -> str:
+    """The prompt's section for the profile's ``questions``, or an empty string."""
+    questions = [q for q in profile.get("questions") or [] if q]
+    if not questions:
+        return ""
+    return QUESTIONS.format(LIST="\n".join("%d. %s" % (i, q) for i, q in enumerate(questions, 1)))
+
+
 def fill(profile: Dict[str, Any], goal: str, session: str, run_dir: str, seed: Optional[str] = None,
          budget_min: float = 30, game_dir: Optional[str] = None, start_args: str = "",
          pt_command: Optional[str] = None) -> str:
@@ -117,6 +148,7 @@ def fill(profile: Dict[str, Any], goal: str, session: str, run_dir: str, seed: O
         "VERSION_SOURCE": version_source,
         "METRICS_NOTE": metrics_note,
         "STATUS_EXTRA": status_extra,
+        "QUESTIONS": questions_section(profile),
     }
     text = template
     for key, value in values.items():

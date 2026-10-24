@@ -9,7 +9,7 @@ writes a structured report, and the reports are merged into one summary.
   virtual display, saves, screenshots and logs) and drives it with keys and
   the mouse ([`playtester.harness`](../src/playtester/harness/)).
 - A **profile** tells it how to build, start, see and steer one game
-  ([PROFILES.md](PROFILES.md)). Beyond Nations, Kindling and a small demo game
+  ([PROFILES.md](PROFILES.md)). Beyond Nations, Kindling, Atman and a small demo game
   are bundled.
 - A game may implement the optional **probe**: it writes what the player sees
   to `state.json` and `events.jsonl`, so agents can steer precisely and
@@ -18,7 +18,11 @@ writes a structured report, and the reports are merged into one summary.
 - Each agent follows a prompt filled in by `pt prompt`
   ([template](../src/playtester/data/prompts/AGENT_PROMPT.md)) and writes a
   `report.json` ([schema](../src/playtester/data/schemas/report.schema.json)).
-- `pt aggregate` merges a run into `summary.md` and `summary.json`.
+- A profile may list **questions** each agent answers at the end of its
+  session, in its own words, beside its findings (Atman's ask what the game
+  seemed to be about). `pt report` checks that each one is answered.
+- `pt aggregate` merges a run into `summary.md` and `summary.json`, with the
+  agents' answers side by side under each question.
 - The **coordinator skill** (`pt install-skill <game checkout> --profile NAME`
   installs it as `.claude/skills/playtest/SKILL.md`) is the procedure, start
   to finish: preflight, build, smoke, spawn N agents, wait, clean up,
@@ -51,7 +55,7 @@ and installing playtester installs no Python packages (`pyautogui`, `pynput`
 and `pillow` belong to the experimental automation framework and come with
 the `automation` extra only).
 
-The bundled Beyond Nations and Kindling profiles play games you clone and
+The bundled Beyond Nations, Kindling and Atman profiles play games you clone and
 build yourself; the README's [Bundled games](../README.md#bundled-games)
 section has the commands and the minimum version each needs.
 

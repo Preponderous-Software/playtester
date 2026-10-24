@@ -1,0 +1,121 @@
+{
+  "$comment": "The window is the game's own size, 1280x720: below 1280 wide the greeting under the crosshair runs off both edges of the screen.",
+  "name": "atman",
+  "title": "Atman",
+  "description": "a first-person game on Strata about Advaita Vedanta: an afternoon of chores in a river village, pots at the potter's wheel that turn out to be clay, and a snake on the dusk path that turns out to be a rope",
+  "repository": "Preponderous-Software/atman",
+  "build": {
+    "command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --target atman -j4",
+    "requires": [
+      "cmake",
+      "c++"
+    ]
+  },
+  "launch": {
+    "command": [
+      "{game_dir}/build/atman"
+    ],
+    "args": [
+      "--width",
+      "{width}",
+      "--height",
+      "{height}",
+      "--slot",
+      "{data_dir}"
+    ],
+    "cwd": "{session_dir}",
+    "seed_args": [
+      "--seed",
+      "{seed}"
+    ],
+    "start_timeout_sec": 60,
+    "settle_sec": 2,
+    "lp_threads": 4
+  },
+  "window": {
+    "title_regex": "^Atman$",
+    "width": 1280,
+    "height": 720
+  },
+  "probe": null,
+  "movement": null,
+  "crash_patterns": [
+    "atman: .*",
+    "Segmentation fault",
+    "terminate called"
+  ],
+  "process_name": "build/atman",
+  "agent_notes": "atman.md",
+  "cheats": "Do not pass `--autopilot`, `--tour`, `--headless`, `--speed` or `--new` unless your goal says so. Do not read the game's source, its documents (README, CONCEPT.md, RESEARCH.md, MVP.md, docs/) or its content/ folder: the questions at the end ask what the game itself conveyed.",
+  "smoke": {
+    "description": "Into the valley, read the greeting, hide the help, take the mouse, turn and walk a few steps, then save with F5",
+    "seed": 1,
+    "steps": [
+      [
+        "wait",
+        "3"
+      ],
+      [
+        "shot",
+        "01-greeting"
+      ],
+      [
+        "key",
+        "F1"
+      ],
+      [
+        "click",
+        "640",
+        "360"
+      ],
+      [
+        "look",
+        "600",
+        "0"
+      ],
+      [
+        "hold",
+        "w",
+        "2"
+      ],
+      [
+        "shot",
+        "02-walked"
+      ],
+      [
+        "key",
+        "F5"
+      ],
+      [
+        "wait",
+        "1"
+      ],
+      [
+        "shot",
+        "03-saved"
+      ]
+    ]
+  },
+  "goals": [
+    {
+      "goal": "Play as a brand-new player who has never heard of the game, following the HUD's NEXT line (top left) from the first afternoon until you have slept at home and woken the next morning; then try V. Note every moment of confusion, and answer the questions at the end.",
+      "budget_min": 45,
+      "seed": 1
+    },
+    {
+      "goal": "Clay and pots: at the potter's wheel throw three pots (1-4) and name each one, use the clay lens (C) and look around with it, break a pot (B), then read what opened in the codex (Tab). Then carry on toward dusk as far as your time allows, and answer the questions at the end.",
+      "budget_min": 40,
+      "seed": 2
+    },
+    {
+      "goal": "The rope: do what the NEXT line asks until dusk, then walk the path from the village to the ghat, light the lamp (F) and look steadily at each snake until it turns out to be a rope; then sleep at home (E at the indigo door) and, in the morning, try V. Answer the questions at the end.",
+      "budget_min": 45,
+      "seed": 3
+    }
+  ],
+  "questions": [
+    "In your own words, what did you think the game was about? What did the rope and the snake, and the clay and the pots, mean?",
+    "Did anything feel preachy, confusing, or inaccurate (in the teaching, the verses in the codex, or how the tradition is described)? Say what and where; if nothing did, say so."
+  ],
+  "evidence_dir": "docs/playtests"
+}
