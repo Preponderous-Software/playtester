@@ -1,4 +1,4 @@
-"""One playtest session: a game in its own Xvfb, with its own files.
+"""One playtest session: a game in its own Xvfb (or driven headless), with its own files.
 
 Everything a session owns lives in ``$PT_ROOT/$PT_SESSION``::
 
@@ -13,7 +13,12 @@ Everything a session owns lives in ``$PT_ROOT/$PT_SESSION``::
     out/              the game's probe output (state.json, events.jsonl)
     data/             the game's saves and settings for this session
     game.log, xvfb.log
-    display, game.pid, xvfb.pid, window   while running
+    display, game.pid, xvfb.pid, window   while running (X11 driver)
+    drive.jsonl       every drive-channel line, both ways (Strata driver)
+    relay.log, relay.pid, drive.sock, control.sock   while running (Strata driver)
+
+The Strata driver (``"driver": "strata"``, strata_driver.py) starts no Xvfb:
+the game renders headless and takes its input through its drive channel.
 
 A pid file holds the pid and the process's start time (``PID START``, the
 start time being field 22 of ``/proc/PID/stat``). Before signalling a pid the
@@ -36,7 +41,9 @@ import tempfile
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
+from . import inputs
 from . import profile as profiles
+from . import strata_driver
 from . import xdo
 
 SESSION_NAME = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -186,6 +193,8 @@ class Session:
         """What the command line of an old-style pid file's process must contain."""
         if name == "xvfb":
             return ["Xvfb"]
+        if name == "relay":
+            return ["strata_relay"]
         expected = []
         command = self.info().get("command")
         if isinstance(command, list) and command:
@@ -242,6 +251,30 @@ class Session:
         xdo.focus(env, self.window or "")
         return env
 
+    @property
+    def driver(self) -> str:
+        return self.info().get("driver") or self.profile().get("driver") or "x11"
+
+    def channel(self) -> strata_driver.Channel:
+        """The drive channel of a Strata-driver session (one connection to the relay per Session object)."""
+        control = self.info().get("controlSocket") or self.path("control.sock")
+        cached = getattr(self, "_channel", None)
+        if cached is None or cached.path != control:
+            if cached is not None:
+                cached.close()
+            cached = strata_driver.Channel(control)
+            self._channel = cached
+        return cached
+
+    def input(self) -> Any:
+        """The game's input, screenshots and clock, for whichever driver started it."""
+        self.need_game()
+        if self.driver == "strata":
+            info = self.info()
+            return inputs.StrataInput(self.channel(), info.get("clock", "free"),
+                                      float(info.get("step") or strata_driver.DEFAULT_STEP), self.path("pointer"))
+        return inputs.X11Input(self.input_env(), self.window or "")
+
     # --- start and stop ----------------------------------------------------
 
     def _claim_display(self, width: int, height: int) -> int:
@@ -281,12 +314,20 @@ class Session:
 
     def start(self, profile: Dict[str, Any], game_dir: str, seed: Optional[str], extra_args: List[str],
               use_probe: bool = True, width: Optional[int] = None, height: Optional[int] = None,
-              lp_threads: Optional[str] = None) -> Dict[str, Any]:
+              lp_threads: Optional[str] = None, clock: Optional[str] = None,
+              step: Optional[float] = None) -> Dict[str, Any]:
         """Xvfb on a free display, then the game; waits for its window (and first state.json).
 
+        With ``"driver": "strata"`` there is no Xvfb: see ``_start_strata``.
         On any failure prints why (the end of the game's log), stops whatever
         was started and raises HarnessError.
         """
+        if (profile.get("driver") or "x11") == "strata":
+            return self._start_strata(profile, game_dir, seed, extra_args, use_probe, width, height, lp_threads,
+                                      clock or "free", step)
+        if clock not in (None, "free"):
+            raise HarnessError("--clock %s needs a profile with \"driver\": \"strata\" (the %s profile drives "
+                               "the game through X11)" % (clock, profile["name"]))
         missing = [t for t in TOOLS if shutil.which(t) is None]
         if missing:
             raise HarnessError("missing tools: %s (install xvfb, xdotool and imagemagick; docs/AGENT_PLAYTESTING.md)"
@@ -351,10 +392,127 @@ class Session:
             "dirty": build["dirty"],
             "builtAtMs": build["builtAtMs"],
             "buildWarnings": build["warnings"],
+            "driver": "x11",
         }
         with open(self.path("session.json"), "w", encoding="utf-8") as f:
             json.dump(info, f, indent=2)
         return info
+
+    def _start_strata(self, profile: Dict[str, Any], game_dir: str, seed: Optional[str], extra_args: List[str],
+                      use_probe: bool, width: Optional[int], height: Optional[int], lp_threads: Optional[str],
+                      clock: str, step: Optional[float]) -> Dict[str, Any]:
+        """The relay, then the game with STRATA_DRIVE set; waits for it to connect (and for its first state.json).
+
+        No Xvfb, xdotool or ImageMagick. The game renders on a headless EGL
+        surface and connects to the relay's socket; it never listens itself.
+        """
+        if clock not in ("free", "stepped"):
+            raise HarnessError("--clock must be free or stepped (got %r)" % clock)
+        step = float(step or strata_driver.DEFAULT_STEP)
+        if not 0.0 < step <= 1.0:
+            raise HarnessError("--step must be in (0, 1] seconds")
+        if self.game_alive():
+            raise HarnessError("session %s is already running (pt stop first)" % self.name)
+        self.stop()
+        width = int(width or profile["window"]["width"])
+        height = int(height or profile["window"]["height"])
+        use_probe = bool(use_probe and profile.get("probe"))
+        for sub in ("data", "out", "shots"):
+            os.makedirs(self.path(sub), exist_ok=True)
+        for stale in ("drive.jsonl", "pointer"):
+            try:
+                os.remove(self.path(stale))
+            except OSError:
+                pass
+        resolved = dict(profile, _game_dir=game_dir, _probe=use_probe)
+        with open(self.path("profile.json"), "w", encoding="utf-8") as f:
+            json.dump(resolved, f, indent=2)
+        plan = profiles.launch_plan(profile, game_dir, self.dir, width, height, seed, extra_args, use_probe)
+        if not shutil.which(plan["command"][0]) and not os.access(plan["command"][0], os.X_OK):
+            hint = profile.get("build", {}).get("command") if isinstance(profile.get("build"), dict) else None
+            raise HarnessError("no game executable at %s%s" % (plan["command"][0], " (build it: %s)" % hint if hint else ""))
+        build = build_check(game_dir, plan["artifact"])
+        timeout = float(profile["launch"].get("start_timeout_sec", 90))
+        sock_dir = strata_driver.socket_dir(self.dir)
+        drive_sock = os.path.join(sock_dir, "drive.sock")
+        control_sock = os.path.join(sock_dir, "control.sock")
+        # session.json first, so stop() and the commands below find the sockets
+        info = {"session": self.name, "dir": self.dir, "driver": "strata", "clock": clock, "step": step,
+                "driveSocket": drive_sock, "controlSocket": control_sock}  # type: Dict[str, Any]
+        with open(self.path("session.json"), "w", encoding="utf-8") as f:
+            json.dump(info, f, indent=2)
+        try:
+            relay = strata_driver.start_relay(self.dir, sock_dir, self.path("drive.jsonl"), timeout + 30)
+            self._write_pid("relay", relay.pid)
+            state_path = os.path.join(self.probe_dir, "state.json")
+            if os.path.exists(state_path):
+                os.remove(state_path)
+            env = dict(os.environ, **plan["env"])
+            env.update(SOFTWARE_GL)
+            # no display: a game that ignored the drive channel must fail here,
+            # not open a window on someone's desktop
+            for key in ("DISPLAY", "WAYLAND_DISPLAY"):
+                env.pop(key, None)
+            env.update({"STRATA_DRIVE": drive_sock, "STRATA_DRIVE_SURFACE": "headless",
+                        "STRATA_DRIVE_CLOCK": clock, "STRATA_DRIVE_STEP": repr(step)})
+            env["LP_NUM_THREADS"] = str(lp_threads or os.environ.get("PT_LP_THREADS") or profile["launch"].get("lp_threads") or 2)
+            env["PT_SESSION_DIR"] = self.dir
+            with open(self.path("game.log"), "w") as log:
+                game = subprocess.Popen(plan["command"], cwd=plan["cwd"], env=env, stdin=subprocess.DEVNULL,
+                                        stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+            self._write_pid("game", game.pid)
+            channel = strata_driver.Channel(control_sock)
+            try:
+                hello = strata_driver.await_connection(channel, game, timeout)
+                inp = inputs.StrataInput(channel, clock, step, self.path("pointer"))
+                self._settle_strata(profile, inp, game, use_probe, state_path, timeout)
+            finally:
+                channel.close()
+        except strata_driver.DriveError as e:
+            self.stop()
+            raise HarnessError("the game did not come up in session %s (%s). Last lines of %s:\n%s"
+                               % (self.name, e, self.path("game.log"), tail(self.path("game.log"))))
+        except BaseException:
+            self.stop()
+            raise
+        state = read_json(state_path) or {}
+        info.update({
+            "profile": profile["name"],
+            "size": "%dx%d" % (width, height),
+            "seed": seed,
+            "args": list(extra_args),
+            "command": plan["command"],
+            "probe": use_probe,
+            "ticksPerSecond": (profile.get("probe") or {}).get("ticks_per_second"),
+            "startedAtMs": now_ms(),
+            "version": state.get("version"),
+            "commit": git_commit(game_dir),
+            "dirty": build["dirty"],
+            "builtAtMs": build["builtAtMs"],
+            "buildWarnings": build["warnings"],
+            "strata": hello.get("strata"),
+            "abi": hello.get("abi"),
+            "surface": hello.get("surface"),
+        })
+        with open(self.path("session.json"), "w", encoding="utf-8") as f:
+            json.dump(info, f, indent=2)
+        return info
+
+    def _settle_strata(self, profile: Dict[str, Any], inp: "inputs.StrataInput", game: "subprocess.Popen",
+                       use_probe: bool, state_path: str, timeout: float) -> None:
+        """Lets the first frames run: settle_sec of game time, then (with a probe) until state.json exists."""
+        inp.wait(float(profile["launch"].get("settle_sec", 0)))
+        if not use_probe:
+            return
+        deadline = time.time() + timeout
+        while not os.path.exists(state_path):
+            if game.poll() is not None:
+                raise strata_driver.DriveError("the game exited with status %s" % game.returncode)
+            if time.time() > deadline:
+                raise strata_driver.DriveError("no state.json after %gs" % timeout)
+            if inp.stepped:
+                inp.step(15)
+            time.sleep(0.2)
 
     def _await_window(self, profile: Dict[str, Any], game: "subprocess.Popen", use_probe: bool, env: Dict[str, str]) -> str:
         timeout = float(profile["launch"].get("start_timeout_sec", 90))
@@ -381,7 +539,9 @@ class Session:
         Only signals a process that is still the one this session started
         (see ``same_process``); a stale pid file is just removed.
         """
-        for name, grace in (("game", 5.0), ("xvfb", 3.0)):
+        if self.info().get("driver") == "strata" and self.game_alive():
+            self._quit_strata()
+        for name, grace in (("game", 5.0), ("xvfb", 3.0), ("relay", 3.0)):
             pid = self._pid(name)
             if pid:
                 _terminate(pid, grace)
@@ -395,12 +555,41 @@ class Session:
             except OSError:
                 pass
 
+    def _quit_strata(self) -> None:
+        """Asks a driven game to quit the way a player would (a QUIT event), so it shuts down cleanly."""
+        channel = self.channel()
+        try:
+            channel.request("event", type="quit", timeout=5.0)
+            if self.info().get("clock") == "stepped":
+                channel.request("step", frames=2, timeout=10.0)
+            channel.request("bye", timeout=5.0)
+        except (strata_driver.DriveError, OSError):
+            pass
+        finally:
+            channel.close()
+        deadline = time.time() + 5.0
+        while time.time() < deadline and self.game_alive():
+            time.sleep(0.1)
+
     def status(self) -> Dict[str, Any]:
         game, xvfb = self._pid("game"), self._pid("xvfb")
         info = {"session": self.name, "running": self.game_alive(), "gamePid": game if pid_alive(game) else None,
                 "xvfbPid": xvfb if pid_alive(xvfb) else None}  # type: Dict[str, Any]
         if self.display:
             info["display"] = ":" + self.display
+        if self.info().get("driver") == "strata":
+            info["driver"] = "strata"
+            info["clock"] = self.info().get("clock")
+            if info["running"]:
+                channel = self.channel()
+                try:
+                    stats = channel.request("stats", timeout=10.0)
+                    info["frame"] = stats.get("frame")
+                    info["step"] = stats.get("step")
+                except (strata_driver.DriveError, OSError) as e:
+                    info["driveError"] = str(e)
+                finally:
+                    channel.close()
         if info["running"]:
             r = subprocess.run(["ps", "-o", "%cpu=,rss=", "-p", str(game)], stdout=subprocess.PIPE, universal_newlines=True)
             parts = r.stdout.split()

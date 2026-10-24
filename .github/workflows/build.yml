@@ -71,7 +71,7 @@ jobs:
       - name: Profiles and the demo smoke session
         run: |
           pt profiles
-          for p in beyond-nations kindling demo; do pt validate-profile "$p"; done
+          for p in $(pt profiles | cut -d" " -f1); do pt validate-profile "$p"; done
           PT_ROOT="$RUNNER_TEMP/pt-smoke" pt smoke --profile demo
 
       - name: Install the automation extra

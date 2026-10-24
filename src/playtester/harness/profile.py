@@ -28,6 +28,7 @@ from ..schema import DATA_DIR, load_schema, validate
 PROFILE_DIR = os.path.join(DATA_DIR, "profiles")
 
 DEFAULTS = {
+    "driver": "x11",
     "window": {"width": 960, "height": 540},
     "launch": {"args": [], "env": {}, "env_defaults": {}, "seed_args": [], "start_timeout_sec": 90},
     "probe": None,

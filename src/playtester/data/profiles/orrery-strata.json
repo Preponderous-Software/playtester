@@ -1,0 +1,95 @@
+{
+  "$comment": "orrery on the Strata driver (RFC 0027): headless, driven through Strata's drive channel, no X server. A driven orrery never reads or writes mission records. No probe yet: screenshot-only. Pass --date for a repeatable sky.",
+  "name": "orrery-strata",
+  "title": "orrery",
+  "description": "the solar system from JPL data on Strata: watch the planets move at any rate, focus bodies, then board a ship and fly missions (Strata driver: headless; --clock stepped repeats frame for frame)",
+  "repository": "Preponderous-Software/orrery",
+  "driver": "strata",
+  "build": {
+    "command": "python3 tools/fetch_data.py all && python3 tools/build_catalog.py && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --target orrery -j4",
+    "requires": [
+      "cmake",
+      "c++",
+      "python3"
+    ]
+  },
+  "launch": {
+    "command": [
+      "{game_dir}/build/orrery"
+    ],
+    "args": [
+      "--data",
+      "{game_dir}/data",
+      "--width",
+      "{width}",
+      "--height",
+      "{height}"
+    ],
+    "cwd": "{session_dir}",
+    "start_timeout_sec": 90,
+    "settle_sec": 1,
+    "lp_threads": 4
+  },
+  "window": {
+    "width": 640,
+    "height": 360
+  },
+  "crash_patterns": [
+    "orrery: .*(error|cannot|failed).*",
+    "Segmentation fault",
+    "terminate called"
+  ],
+  "process_name": "build/orrery",
+  "agent_notes": "orrery-strata.md",
+  "cheats": "Do not pass --autopilot or --land unless your goal says so.",
+  "smoke": {
+    "description": "Watch the inner planets, speed time up, cycle the focus and zoom, with screenshots",
+    "args": [
+      "--date",
+      "2026-10-24"
+    ],
+    "steps": [
+      [
+        "wait",
+        "1"
+      ],
+      [
+        "shot",
+        "01-system"
+      ],
+      [
+        "key",
+        "period",
+        "period",
+        "period"
+      ],
+      [
+        "wait",
+        "2"
+      ],
+      [
+        "key",
+        "Tab"
+      ],
+      [
+        "key",
+        "Prior"
+      ],
+      [
+        "wait",
+        "1"
+      ],
+      [
+        "shot",
+        "02-focus"
+      ]
+    ]
+  },
+  "goals": [
+    {
+      "goal": "Find your way around the solar system and fly the first mission as a player who has never seen the program; note every moment of confusion.",
+      "budget_min": 30
+    }
+  ],
+  "evidence_dir": "docs/playtests"
+}

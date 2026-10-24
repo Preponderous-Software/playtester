@@ -1,6 +1,6 @@
 """A scripted session that proves the harness end to end on this machine.
 
-    pt smoke [--profile P] [--game-dir D] [--session NAME] [--keep]
+    pt smoke [--profile P] [--game-dir D] [--session NAME] [--clock free|stepped [--step SECS]] [--keep]
 
 Runs the profile's ``smoke`` script through the same commands an agent uses:
 starts the game with the script's seed and arguments, runs its steps, then
@@ -13,6 +13,10 @@ If a session of that name is already running, smoke refuses to start and
 leaves it alone. Otherwise it stops the session it started when it finishes;
 ``--keep`` leaves the game running instead so you can look at it, and prints
 the command that stops it. The session directory's files are always kept.
+
+``--clock stepped`` (Strata-driver profiles) runs the script on a stepped
+clock: every hold and wait is a fixed number of frames, so two runs of the
+same build and seed play the same frames.
 """
 
 import os
@@ -28,7 +32,7 @@ from .session import HarnessError, Session, default_root
 
 def main(args: List[str]) -> int:
     opts = {"--profile": os.environ.get("PT_PROFILE"), "--game-dir": os.environ.get("PT_GAME_DIR") or os.getcwd(),
-            "--session": "smoke-%d" % os.getpid()}
+            "--session": "smoke-%d" % os.getpid(), "--clock": None, "--step": None}
     keep = False
     rest = list(args)
     while rest:
@@ -62,6 +66,9 @@ def main(args: List[str]) -> int:
             raise HarnessError("session %s is already running; smoke will not touch it (use another --session)"
                                % session.name)
         start = ["start", "--profile", profile["_source"], "--game-dir", opts["--game-dir"]]
+        for flag in ("--clock", "--step"):
+            if opts[flag]:
+                start += [flag, opts[flag]]
         if script.get("seed") is not None:
             start += ["--seed", str(script["seed"])]
         if run(start + list(script.get("args", []))) != 0:
