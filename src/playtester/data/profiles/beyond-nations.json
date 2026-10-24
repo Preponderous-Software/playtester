@@ -5,7 +5,8 @@
   "repository": "Preponderous-Software/beyond-nations",
   "build": {
     "command": "dotnet build src/BeyondNations.Desktop/BeyondNations.Desktop.csproj -c Release",
-    "requires": ["dotnet"]
+    "requires": ["dotnet"],
+    "artifact": "{game_dir}/src/BeyondNations.Desktop/bin/Release/net8.0/BeyondNations.Desktop.dll"
   },
   "launch": {
     "command": ["{game_dir}/src/BeyondNations.Desktop/bin/Release/net8.0/BeyondNations.Desktop"],

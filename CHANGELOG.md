@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `atman` profile: Atman, a first-person game about Advaita Vedanta on Strata, played from screenshots (no probe) at the game's own 1280x720, with agent notes, a smoke script, three default goals and two questions about what the game taught
 - Profile `questions`: questions every agent answers at the end of a session; the prompt lists them, `report.json` carries `answers`, `pt report` and `pt aggregate` flag a missing answer, and `summary.md` / `summary.json` gather the answers by question
 - `pt smoke --keep` leaves the smoke session running for inspection (it was accepted and ignored before)
+- `pt start` warns when the game's build is older than the checkout's HEAD commit or an uncommitted edit to a tracked file, and records `dirty`, `builtAtMs` and `buildWarnings` in `session.json`; profile `build.artifact` names the built file to check (the `beyond-nations` profile names its `.dll`)
 
 ### Changed
 - Relicensed from GPL-3.0 to MIT

@@ -23,6 +23,7 @@ checks one against [`profile.schema.json`](../src/playtester/data/schemas/profil
 | `repository` | | `owner/name`, for issues and evidence |
 | `build.command` | | Shell command run in the game's checkout that builds what `launch.command` runs |
 | `build.requires` | | The toolchain the build needs, a list of commands (e.g. `["dotnet"]`); `pt validate-profile` prints it |
+| `build.artifact` | | The built file whose modification time is the build's time, with the `launch` placeholders (default `launch.command[0]` when it is inside the game's checkout). `pt start` warns when it is older than the checkout's HEAD commit or an uncommitted edit |
 | `launch.command` | yes | The executable and fixed arguments, a list |
 | `launch.args` | | More arguments, always passed (window size, data directory) |
 | `launch.cwd` | | Working directory (default the session directory) |

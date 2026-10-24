@@ -124,6 +124,8 @@ def run_session_command(session: Session, cmd: str, args: List[str]) -> int:
         profile = profiles.load(opts["profile"] or "")
         info = session.start(profile, opts["game_dir"], opts["seed"], opts["extra"], use_probe=opts["probe"],
                              width=opts["width"], height=opts["height"])
+        for warning in info["buildWarnings"]:
+            print("pt: warning: " + warning, file=sys.stderr)
         out(info)
     elif cmd == "stop":
         session.stop()

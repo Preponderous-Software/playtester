@@ -51,6 +51,10 @@
             "type": "string"
           },
           "description": "Tools the build needs on PATH"
+        },
+        "artifact": {
+          "type": "string",
+          "description": "The built file whose modification time is the build's time (placeholders as in launch); defaults to launch.command[0] when it is inside the game's checkout"
         }
       }
     },
