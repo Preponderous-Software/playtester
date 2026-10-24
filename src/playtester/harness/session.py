@@ -2,7 +2,8 @@
 
 Everything a session owns lives in ``$PT_ROOT/$PT_SESSION``::
 
-    session.json      display, window, profile, game args, version, commit
+    session.json      display, window, profile, game args, version, commit,
+                      dirty, builtAtMs, buildWarnings (see ``build_check``)
     profile.json      the resolved profile the session was started with
     actions.jsonl     every harness command, with its time (for repro)
     findings.jsonl    ``pt note``: raw notes as they were taken
@@ -305,6 +306,7 @@ class Session:
         if not shutil.which(plan["command"][0]) and not os.access(plan["command"][0], os.X_OK):
             hint = profile.get("build", {}).get("command") if isinstance(profile.get("build"), dict) else None
             raise HarnessError("no game executable at %s%s" % (plan["command"][0], " (build it: %s)" % hint if hint else ""))
+        build = build_check(game_dir, plan["artifact"])
         try:
             number = self._claim_display(width, height)
             state_path = os.path.join(self.probe_dir, "state.json")
@@ -346,6 +348,9 @@ class Session:
             "startedAtMs": now_ms(),
             "version": state.get("version"),
             "commit": git_commit(game_dir),
+            "dirty": build["dirty"],
+            "builtAtMs": build["builtAtMs"],
+            "buildWarnings": build["warnings"],
         }
         with open(self.path("session.json"), "w", encoding="utf-8") as f:
             json.dump(info, f, indent=2)
@@ -430,10 +435,52 @@ def _terminate(pid: int, grace: float) -> None:
         time.sleep(0.2)
 
 
-def git_commit(game_dir: str) -> Optional[str]:
+def _git(game_dir: str, *args: str) -> Optional[str]:
+    """The output of ``git -C game_dir ARGS``, or None when git fails (no git, not a checkout)."""
     try:
-        r = subprocess.run(["git", "-C", game_dir, "rev-parse", "--short", "HEAD"], stdout=subprocess.PIPE,
+        r = subprocess.run(["git", "-C", game_dir] + list(args), stdout=subprocess.PIPE,
                            stderr=subprocess.DEVNULL, universal_newlines=True, timeout=10)
-        return r.stdout.strip() or None
     except (OSError, subprocess.SubprocessError):
         return None
+    return r.stdout if r.returncode == 0 else None
+
+
+def git_commit(game_dir: str) -> Optional[str]:
+    return (_git(game_dir, "rev-parse", "--short", "HEAD") or "").strip() or None
+
+
+def build_check(game_dir: str, artifact: Optional[str]) -> Dict[str, Any]:
+    """Whether the build the session runs is the checkout's commit.
+
+    Returns ``builtAtMs`` (the artifact's modification time, or None),
+    ``dirty`` (tracked files in the checkout have uncommitted changes, or
+    None outside a git checkout) and ``warnings``: one line each when the
+    artifact is older than the HEAD commit, or older than an uncommitted
+    edit, either of which means ``commit`` does not describe what runs.
+    """
+    built = None  # type: Optional[float]
+    if artifact:
+        try:
+            built = os.path.getmtime(artifact)
+        except OSError:
+            pass
+    warnings = []  # type: List[str]
+    committed = (_git(game_dir, "log", "-1", "--format=%ct") or "").strip()
+    if built is not None and committed.isdigit() and built < int(committed):
+        warnings.append("%s was built before the checkout's HEAD commit; rebuild it or the session runs old code"
+                        % artifact)
+    status = _git(game_dir, "status", "--porcelain", "--untracked-files=no")
+    dirty = None if status is None else bool(status.strip())
+    if dirty and built is not None:
+        edited = []
+        for line in status.splitlines():
+            path = line[3:].split(" -> ")[-1].strip('"')
+            try:
+                if os.path.getmtime(os.path.join(game_dir, path)) > built:
+                    edited.append(path)
+            except OSError:
+                pass
+        if edited:
+            warnings.append("%s was built before uncommitted edits to %s; rebuild it or the session runs old code"
+                            % (artifact, ", ".join(edited[:3]) + (" and %d more" % (len(edited) - 3) if len(edited) > 3 else "")))
+    return {"builtAtMs": int(built * 1000) if built is not None else None, "dirty": dirty, "warnings": warnings}

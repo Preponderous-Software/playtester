@@ -139,4 +139,21 @@ def launch_plan(profile: Dict[str, Any], game_dir: str, session_dir: str, width:
         if not os.environ.get(key) and os.path.exists(str(value)):
             defaults[key] = str(value)
     cwd = expand(launch.get("cwd", "{session_dir}"), variables)
-    return {"command": command, "cwd": cwd, "env": dict(defaults, **env)}
+    return {"command": command, "cwd": cwd, "env": dict(defaults, **env),
+            "artifact": build_artifact(profile, game_dir, command[0], variables)}
+
+
+def build_artifact(profile: Dict[str, Any], game_dir: str, executable: str,
+                   variables: Dict[str, Any]) -> Optional[str]:
+    """The built file whose modification time says when the game was last built.
+
+    ``build.artifact`` when the profile names one, otherwise the executable
+    when it lies inside the game's checkout (an interpreter on the PATH says
+    nothing about the build), otherwise None.
+    """
+    build = profile.get("build") if isinstance(profile.get("build"), dict) else {}
+    if build.get("artifact"):
+        return expand(build["artifact"], variables)
+    root = os.path.abspath(game_dir)
+    path = os.path.abspath(executable)
+    return path if path.startswith(root + os.sep) else None

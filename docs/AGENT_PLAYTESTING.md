@@ -85,7 +85,7 @@ scripted session. It runs in a session of its own (`smoke-<pid>`, or
 
 | Command | |
 | --- | --- |
-| `start [--profile P] [--game-dir D] [--seed S] [--no-probe] [game args]` | claims a free display (`:100`-`:199`) under a lock, starts Xvfb and the game (with the probe flag when the profile has one), waits for the window (and the first `state.json`), moves it to the origin; on failure prints the log tail and cleans up. Arguments it does not know go to the game; after `--` everything does |
+| `start [--profile P] [--game-dir D] [--seed S] [--no-probe] [game args]` | claims a free display (`:100`-`:199`) under a lock, starts Xvfb and the game (with the probe flag when the profile has one), waits for the window (and the first `state.json`), moves it to the origin; on failure prints the log tail and cleans up. Warns (and records `buildWarnings` in `session.json`) when the build is older than the checkout's HEAD commit or an uncommitted edit, so the session would run old code under the checkout's `commit`; it never builds, so rebuild with the profile's `build.command` and start again. Arguments it does not know go to the game; after `--` everything does |
 | `stop` | stops the game (its whole process group), then its Xvfb; safe to repeat. A pid is signalled only while it is still the process the session started (its start time is recorded beside the pid) |
 | `status` | running?, display, CPU, memory, fps, ticks a second |
 | `key K...`, `hold K SECS` | xdotool key names; combos as `Shift_L+w` |
@@ -182,7 +182,8 @@ time budget, with something to measure:
 $PT_ROOT/                                the run
   summary.md, summary.json               written by pt aggregate
   s01/                                   one session (PT_SESSION)
-    session.json                         profile, display, window, game args, version, commit
+    session.json                         profile, display, window, game args, version, commit,
+                                         dirty, builtAtMs, buildWarnings
     profile.json                         the resolved profile the session started with
     report.json                          the agent's report
     findings.jsonl                       pt note: raw notes as they were taken

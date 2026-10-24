@@ -38,7 +38,9 @@ slows every game's world. If the box is already busy, use fewer.
 
 Run the profile's build command (`pt validate-profile $PROFILE` prints it)
 in this checkout, with its toolchain on `PATH`. Every session runs
-this one build. Record the commit: `git rev-parse --short HEAD`.
+this one build. Record the commit: `git rev-parse --short HEAD`. If a
+`pt start` (or the smoke run below) prints `pt: warning: ... was built
+before ...`, the build is older than the checkout: rebuild before going on.
 
 ## 3. Create the run directory and smoke the harness
 
