@@ -72,6 +72,25 @@ class CliTest(unittest.TestCase):
             self.assertIn("3 sessions", out)
             self.assertTrue(os.path.isfile(os.path.join(run_dir, "summary.md")))
 
+    def test_report_checks_the_sessions_questions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = os.path.join(tmp, "run")
+            shutil.copytree(FIXTURE_RUN, run_dir)
+            with open(os.path.join(run_dir, "s01", "profile.json"), "w", encoding="utf-8") as f:
+                json.dump({"name": "x", "questions": ["What was it about?"]}, f)
+            env = {"PT_ROOT": run_dir, "PT_SESSION": "s01"}
+            code, out, _ = run("report", env=env)
+            self.assertEqual(code, 1)
+            self.assertIn("no answer to question 1: What was it about?", out)
+            path = os.path.join(run_dir, "s01", "report.json")
+            with open(path, encoding="utf-8") as f:
+                report = json.load(f)
+            report["answers"] = [{"question": "What was it about?", "answer": "Nations."}]
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(report, f)
+            code, out, _ = run("report", env=env)
+            self.assertEqual(code, 0, out)
+
     def test_prompt_from_a_profile_goal(self):
         code, out, _ = run("prompt", "--profile", "beyond-nations", "--goal-index", "3", "--session", "s03",
                            "--run-dir", "/tmp/run", "--game-dir", "/games/bn")

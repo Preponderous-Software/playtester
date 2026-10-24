@@ -10,6 +10,7 @@ checks one against [`profile.schema.json`](../src/playtester/data/schemas/profil
 | --- | --- | --- |
 | `beyond-nations` | Beyond Nations, a 3D colony-and-nations game (.NET, Dear ImGui) | `--playtest-out` |
 | `kindling` | Kindling, a cozy first-person homestead game on Strata (C++) | `--playtest-out` |
+| `atman` | Atman, a first-person game about Advaita Vedanta on Strata (C++) | none (screenshots only); asks `questions` |
 | `demo` | the tiny test game in `playtester.demo` | `--playtest-out` |
 
 ## Fields
@@ -42,6 +43,7 @@ checks one against [`profile.schema.json`](../src/playtester/data/schemas/profil
 | `cheats` | | What agents must not press or pass unless their goal says so |
 | `smoke` | | The scripted check `pt smoke` runs; below |
 | `goals` | | Default goals: `{goal, budget_min, seed, args}`; `pt prompt --goal-index N` uses them |
+| `questions` | | Questions every agent answers at the end of its session, in its own words (for example, what the game seemed to be about). The prompt lists them, the report carries the answers (`answers`: `{question, answer}`), `pt report` refuses a report that leaves one out, and `pt aggregate` puts every agent's answer side by side under each question in the summary |
 | `evidence_dir` | | Where in the game's repository evidence is committed (default `docs/playtests`) |
 
 Placeholders in `launch` strings: `{game_dir}` (the checkout: `--game-dir`,

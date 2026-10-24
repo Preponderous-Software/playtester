@@ -6,7 +6,7 @@ An open-source Python toolkit for playing games with AI: parallel AI agents that
 
 Playtester has two parts:
 
-- **The agent playtest kit** (the main part). Any number of AI agents (for example Claude Code subagents) play the real game at once, each in its own headless session and toward its own goal, the way a person would: by looking at screenshots and pressing keys. Each writes a structured report, and the reports are merged into one summary with grouped findings and objective timings. The `pt` command runs and drives the sessions; a **profile** describes each game; games can optionally implement a small **probe** (state and event files) so agents can steer precisely. A tiny demo game ships with the kit, and Beyond Nations and Kindling are bundled as profiles. See [docs/AGENT_PLAYTESTING.md](docs/AGENT_PLAYTESTING.md).
+- **The agent playtest kit** (the main part). Any number of AI agents (for example Claude Code subagents) play the real game at once, each in its own headless session and toward its own goal, the way a person would: by looking at screenshots and pressing keys. Each writes a structured report, and the reports are merged into one summary with grouped findings and objective timings. The `pt` command runs and drives the sessions; a **profile** describes each game; games can optionally implement a small **probe** (state and event files) so agents can steer precisely. A tiny demo game ships with the kit, and Beyond Nations, Kindling and Atman are bundled as profiles. A profile can also give agents questions to answer at the end of a session (what the game seemed to be about, say), and the summary sets their answers side by side. See [docs/AGENT_PLAYTESTING.md](docs/AGENT_PLAYTESTING.md).
 - **The screenshot automation framework (experimental).** Screenshot capture, an AI decision engine and a keyboard executor, wired together by `GameAutomator`. The decision engine is **mocked**: no AI model is integrated yet, and [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) describes how one could be (LLaVA, CLIP, MiniGPT-4, OpenFlamingo). See [The automation framework](#the-automation-framework-experimental).
 
 ## Quick start: the agent playtest kit
@@ -62,6 +62,7 @@ To playtest your own game, write a profile for it: see [Adding a game](docs/PROF
 | `demo` | A tiny top-down test game that ships with playtester (`playtester.demo`) | Nothing more: no clone, no build |
 | `beyond-nations` | [Beyond Nations](https://github.com/Preponderous-Software/beyond-nations), a 3D colony-and-nations game | The .NET 8 SDK; release **0.5.0** or newer for the probe (0.5.0 is marked as a pre-release on GitHub, so the "latest release" link skips it) |
 | `kindling` | [Kindling](https://github.com/Preponderous-Software/kindling), a first-person homestead game | CMake and a C++17 compiler, plus the X11 development packages its SDL3 build needs; commit **d47730f** or newer for the probe |
+| `atman` | [Atman](https://github.com/Preponderous-Software/atman), a first-person game about Advaita Vedānta | CMake and a C++17 compiler, plus the X11 development packages its SDL3 build needs; release **0.1.0** or newer. No probe: agents play from screenshots, and answer questions about what the game taught |
 
 The profiles start a game you have cloned and built; pass its checkout with `--game-dir` (or `PT_GAME_DIR`). `pt validate-profile NAME` prints a profile's build command and the toolchain it needs.
 
@@ -82,6 +83,14 @@ sudo apt-get install -y cmake g++ libx11-dev libxext-dev libxcursor-dev libxi-de
 git clone https://github.com/Preponderous-Software/kindling.git ~/kindling
 cd ~/kindling
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --target kindling -j4
+```
+
+**Atman** (`pt start --profile atman --game-dir ~/atman`), with the same packages as Kindling:
+
+```bash
+git clone https://github.com/Preponderous-Software/atman.git ~/atman
+cd ~/atman
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --target atman -j4
 ```
 
 A game without a probe can still be playtested from screenshots alone; the probe adds precise state, events and the `await`, `face` and `walkto` commands.
@@ -270,5 +279,5 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/IMPLEMENTATION_PL
 
 ### Supported Games
 
-- **Agent playtest kit** – the demo game, Beyond Nations and Kindling (see [Bundled games](#bundled-games)), and any game you write a profile for
+- **Agent playtest kit** – the demo game, Beyond Nations, Kindling and Atman (see [Bundled games](#bundled-games)), and any game you write a profile for
 - **Automation framework** – Ophidian and Roam templates with mocked implementations, and a base for your own automators

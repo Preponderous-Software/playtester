@@ -7,7 +7,8 @@ the agent's ``report.json`` and, for a game with a probe, the game's
 ``out/events.jsonl``. The summary has a per-goal outcome table, the findings
 of every agent grouped so that near-duplicates reported by different agents
 become one entry, counts by severity, objective timings across sessions
-taken from events.jsonl, and links to the screenshots.
+taken from events.jsonl, links to the screenshots, and every agent's answers
+to the profile's questions (``questions``), side by side under each question.
 
 Game time comes from event ticks divided by the game's ticks per second,
 which each session records in ``session.json`` from its profile. For runs
@@ -24,7 +25,7 @@ import statistics
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
-from .report import check_report
+from .report import answer_to, check_report, same_question, unanswered
 from ..schema import load_schema
 
 SEVERITIES = ["blocker", "major", "minor", "polish"]
@@ -239,10 +240,11 @@ def collect(run_dir: str, ticks_per_second: Optional[float] = None, default_prof
         tps = ticks_per_second or info.get("ticksPerSecond") or (profile.get("probe") or {}).get("ticks_per_second")
         derived = derive_metrics(events, tps)
         errors = []  # type: List[str]
+        questions = [q for q in profile.get("questions") or [] if isinstance(q, str)]
         if report is None:
             problems.append("%s: report.json %s" % (name, report_error))
         else:
-            errors = check_report(report, schema, session_dir)
+            errors = check_report(report, schema, session_dir) or unanswered(report, questions)
             for e in errors:
                 problems.append("%s: report.json %s" % (name, e))
         crash = crashed(session_dir, profile.get("crash_patterns") or [])
@@ -265,6 +267,8 @@ def collect(run_dir: str, ticks_per_second: Optional[float] = None, default_prof
             "ticksPerSecond": tps,
             "notes": len(read_jsonl(os.path.join(session_dir, "findings.jsonl"))),
             "crash": crash,
+            "questions": questions,
+            "answers": [a for a in r.get("answers") or [] if isinstance(a, dict)],
         })
         for f in r.get("findings") or []:
             if not isinstance(f, dict):
@@ -300,6 +304,31 @@ def timings_table(sessions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                      "min": values[0] if values else None, "median": statistics.median(values) if values else None,
                      "max": values[-1] if values else None})
     return rows
+
+
+def answers_by_question(sessions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Each question asked (the profiles' questions in order, then any others agents answered),
+    with every session's answer to it."""
+    order = []  # type: List[str]
+    for s in sessions:
+        for q in s.get("questions") or []:
+            if not any(same_question(q, o) for o in order):
+                order.append(q)
+    for s in sessions:
+        for a in s.get("answers") or []:
+            q = a.get("question")
+            if isinstance(q, str) and q.strip() and not any(same_question(q, o) for o in order):
+                order.append(q)
+    result = []
+    for q in order:
+        answers = []
+        for s in sessions:
+            text = answer_to(s, q)
+            asked = any(same_question(q, x) for x in s.get("questions") or [])
+            if text is not None or asked:
+                answers.append({"session": s["session"], "answer": text})
+        result.append({"question": q, "answers": answers})
+    return result
 
 
 def md_escape(text: Optional[str]) -> str:
@@ -345,6 +374,17 @@ def render_markdown(run_dir: str, summary: Dict[str, Any]) -> str:
             [str(d["deaths"]), str(n), md_escape(s.get("verdict"))]
         lines.append("| " + " | ".join(cells) + " |")
     lines.append("")
+    if summary["answers"]:
+        lines.append("## Answers")
+        lines.append("")
+        lines.append("Each agent's own words, verbatim from its report; a missing answer is listed under problems.")
+        lines.append("")
+        for i, q in enumerate(summary["answers"], 1):
+            lines.append("### Q%d. %s" % (i, md_escape(q["question"])))
+            lines.append("")
+            for a in q["answers"]:
+                lines.append("- **%s:** %s" % (a["session"], md_escape(a["answer"]) if a["answer"] else "*(no answer)*"))
+            lines.append("")
     lines.append("## Findings")
     lines.append("")
     if not summary["findings"]:
@@ -406,6 +446,7 @@ def aggregate(run_dir: str, ticks_per_second: Optional[float] = None,
         "findingReports": len(findings),
         "findings": groups,
         "objectiveTimings": timings_table(sessions),
+        "answers": answers_by_question(sessions),
         "problems": problems,
     }
     with open(os.path.join(run_dir, "summary.json"), "w", encoding="utf-8") as f:

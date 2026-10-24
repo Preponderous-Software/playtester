@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLAUDE.md with project context for Claude Code
 - CODE_OF_CONDUCT.md (Contributor Covenant 2.1), SECURITY.md, issue templates and a pull request template
 - `pyproject.toml` declaring the setuptools build backend, and `MANIFEST.in` so the source distribution includes the whole test suite
+- `atman` profile: Atman, a first-person game about Advaita Vedanta on Strata, played from screenshots (no probe) at the game's own 1280x720, with agent notes, a smoke script, three default goals and two questions about what the game taught
+- Profile `questions`: questions every agent answers at the end of a session; the prompt lists them, `report.json` carries `answers`, `pt report` and `pt aggregate` flag a missing answer, and `summary.md` / `summary.json` gather the answers by question
 - `pt smoke --keep` leaves the smoke session running for inspection (it was accepted and ignored before)
 
 ### Changed

@@ -400,6 +400,14 @@
         }
       }
     },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Questions every agent answers in its report's answers, at the end of the session; pt aggregate collects the answers by question"
+    },
     "evidence_dir": {
       "type": "string",
       "description": "Where in the game's repository playtest evidence is committed (default docs/playtests)"

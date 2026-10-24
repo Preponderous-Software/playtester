@@ -98,7 +98,9 @@ pt aggregate "$RUN"
 
 Read `$RUN/summary.md` and present it: the outcome table, the blocker and
 major groups with their screenshots (open the PNGs and look before you
-vouch for a finding), and the problems section (missing or invalid reports,
+vouch for a finding), the answers section when the profile asks
+`questions` (what the agents, in their own words, took the game to be about),
+and the problems section (missing or invalid reports, unanswered questions,
 crashes). Say which findings more than one agent hit, and check each
 group's "Also reported as" titles: grouping is a heuristic.
 

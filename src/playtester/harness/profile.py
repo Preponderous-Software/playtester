@@ -34,6 +34,7 @@ DEFAULTS = {
     "movement": None,
     "crash_patterns": [],
     "goals": [],
+    "questions": [],
     "cheats": "",
 }
 
