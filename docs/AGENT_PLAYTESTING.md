@@ -161,6 +161,30 @@ expect different numbers on yours, and measure them with `pt measure`:
 Agents spend much of their time thinking between commands while the game
 keeps running, so a slower world costs less than it sounds.
 
+### The Strata driver
+
+Games on Strata (ABI 1.12 or later) can be run with `"driver": "strata"`
+profiles (`kindling-strata`, `atman-strata`, `steading-strata`,
+`orrery-strata`; [PROFILES.md](PROFILES.md#drivers)): no Xvfb, `xdotool` or
+ImageMagick, input injected through the engine, exact mouse look, and with
+`pt start --clock stepped` a world that waits for the agent. Measured on the
+same machine, Kindling at 640x360 with 4 llvmpipe threads:
+
+| Clock | CPU while the agent thinks | Frames a second while running | Memory |
+| --- | --- | --- | --- |
+| free (real time, like X11) | 3.6 cores | 9 | 152 MB (no Xvfb) |
+| stepped | 0 (the game waits inside its frame clock) | 8.6 while stepping | 152 MB |
+
+A stepped session costs nothing between commands, so many more of them fit
+on a machine whose agents mostly think; and because game time is frames x
+step, the timings in a stepped session's findings do not depend on load.
+`pt measure` still measures X11 sessions only.
+
+Two stepped runs of the same build, seed and commands give the same frames:
+[docs/playtests/0.2.0/strata-driver](playtests/0.2.0/strata-driver/README.md)
+records Kindling, Atman and orrery twice each with
+`examples/strata_driver_demo.py`, every frame identical.
+
 ## Writing goals
 
 A goal is one sentence an agent can finish, fail or partly do inside its
@@ -243,6 +267,13 @@ release time if the release turns out to be a different version.
   probe flag (`--no-probe`).
 - **The first screenshot is black** -- the game had not drawn yet; give the
   profile a `launch.settle_sec`.
+- **Strata driver: "the game did not connect to its drive channel"** -- the
+  game was built against a Strata older than ABI 1.12, or ignores the drive
+  channel; its log says "driven through ..." when it connects. With no
+  `DISPLAY` set, a game that falls back to a window fails at once instead of
+  opening one.
+- **Strata driver: `pt step` fails** -- the session was started with the free
+  clock; start it with `--clock stepped`.
 - **Clicks on buttons do nothing** -- immediate-mode UIs at a few frames a
   second only register a click after the pointer hovers; `pt click` hovers
   0.3 s and holds the button 0.15 s. Retry once before calling it a bug.

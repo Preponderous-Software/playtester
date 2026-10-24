@@ -11,7 +11,8 @@ from playtester.agents.prompt import fill
 from playtester.harness import cli
 from playtester.harness import profile as profiles
 
-BUNDLED = ("atman", "beyond-nations", "demo", "kindling")
+BUNDLED = ("atman", "atman-strata", "beyond-nations", "demo", "kindling", "kindling-strata", "orrery-strata",
+           "steading-strata")
 
 
 class ProfileTest(unittest.TestCase):

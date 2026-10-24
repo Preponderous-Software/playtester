@@ -5,6 +5,10 @@ A game that implements the probe contract (docs/PROBE_CONTRACT.md) writes
 event a line) to the directory given with its probe flag. ``face`` and
 ``walkto`` steer by them: they turn or walk a little, re-read the state, and
 repeat, using the turn and move keys (or mouse) from the game's profile.
+
+In a stepped session (Strata driver, ``--clock stepped``) they run in game
+time: holds are whole frames, and the state is re-read at fixed frame counts,
+so a closed loop takes the same path on every run.
 """
 
 import json
@@ -12,8 +16,16 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 
-from . import xdo
+from typing import Any as _Any
+
 from .session import Session, append_json, now_ms, read_json
+
+# A probe rewrites state.json about twice a second of wall time. In a stepped
+# session the harness waits this long, then steps one frame, so the state read
+# afterwards is that frame's, on every run.
+STATE_INTERVAL_SEC = 0.55
+# await, stepped: frames between looks at state.json.
+AWAIT_FRAMES = 15
 
 
 def normalise(deg: float) -> float:
@@ -32,8 +44,21 @@ def read_state(session: Session) -> Optional[Dict[str, Any]]:
     return read_json(state_path(session))
 
 
-def fresh_state(session: Session, after_ms: int, timeout: float = 4.0) -> Optional[Dict[str, Any]]:
-    """The first state written after ``after_ms``."""
+def fresh_state(session: Session, after_ms: int, timeout: float = 4.0, inp: _Any = None) -> Optional[Dict[str, Any]]:
+    """The first state written after ``after_ms``.
+
+    Stepped: waits out the probe's write interval, then runs one frame, which
+    writes the state; repeated until one is fresh.
+    """
+    if inp is not None and getattr(inp, "stepped", False):
+        st = None
+        for _ in range(max(1, int(timeout / STATE_INTERVAL_SEC) + 1)):
+            time.sleep(STATE_INTERVAL_SEC)
+            inp.step(1)
+            st = read_state(session)
+            if st is not None and st.get("wallTimeMs", 0) > after_ms:
+                return st
+        return st
     deadline = time.time() + timeout
     st = None
     while time.time() < deadline:
@@ -104,14 +129,14 @@ def _clockwise(yaw: float, movement: Dict[str, Any]) -> float:
     return yaw if movement.get("yaw_increases", "left") == "right" else -yaw
 
 
-def _turn(session: Session, env: Dict[str, str], movement: Dict[str, Any], degrees_right: float) -> None:
+def _turn(session: Session, inp: _Any, movement: Dict[str, Any], degrees_right: float) -> None:
     turn = movement["turn"]
     if turn["method"] == "keys":
         key = turn["right"] if degrees_right > 0 else turn["left"]
         # a little short of the whole turn: key holds overshoot by up to a frame
-        xdo.hold(env, key, max(0.03, abs(degrees_right) / float(turn["degrees_per_second"]) * 0.9))
+        inp.hold(key, max(0.03, abs(degrees_right) / float(turn["degrees_per_second"]) * 0.9))
     else:
-        xdo.move_relative(env, int(round(degrees_right * float(turn["pixels_per_degree"]))), 0)
+        inp.look(int(round(degrees_right * float(turn["pixels_per_degree"]))), 0)
 
 
 def world_screen(st: Optional[Dict[str, Any]], profile: Dict[str, Any]) -> bool:
@@ -119,15 +144,16 @@ def world_screen(st: Optional[Dict[str, Any]], profile: Dict[str, Any]) -> bool:
     return bool(st) and st.get("screen") in screens
 
 
-def face(session: Session, relative: float, tolerance: Optional[float] = None, attempts: int = 8) -> Dict[str, Any]:
+def face(session: Session, relative: float, tolerance: Optional[float] = None, attempts: int = 8,
+         inp: _Any = None) -> Dict[str, Any]:
     """Turns by ``relative`` degrees (+ right), re-reading the yaw after each turn."""
     profile = need_probe(session)
     movement = profile.get("movement")
     if not movement:
         return {"ok": False, "error": "the %s profile has no movement section" % profile["name"]}
     tolerance = float(movement.get("face_tolerance", 8.0) if tolerance is None else tolerance)
-    env = session.input_env()
-    st = fresh_state(session, now_ms())
+    inp = inp or session.input()
+    st = fresh_state(session, now_ms(), inp=inp)
     if not world_screen(st, profile) or not isinstance(st.get("player"), dict):
         return {"ok": False, "error": "not in the world", "screen": st and st.get("screen")}
     target = _clockwise(st["player"]["yawDeg"], movement) + relative
@@ -139,8 +165,8 @@ def face(session: Session, relative: float, tolerance: Optional[float] = None, a
         if not world_screen(st, profile):
             return {"ok": False, "error": "left the world", "screen": st.get("screen")}
         _trace(session, "face", yawDeg=st["player"]["yawDeg"], remaining=round(remaining, 1), fps=st.get("fps"))
-        _turn(session, env, movement, remaining)
-        st = fresh_state(session, now_ms() + 30) or st
+        _turn(session, inp, movement, remaining)
+        st = fresh_state(session, now_ms() + 30, inp=inp) or st
     remaining = normalise(target - _clockwise(st["player"]["yawDeg"], movement))
     return {"ok": abs(remaining) <= tolerance, "yawDeg": st["player"]["yawDeg"], "offBy": round(-remaining, 1),
             "turns": attempts}
@@ -158,11 +184,11 @@ def walkto(session: Session, kind: str, max_seconds: float = 60.0) -> Dict[str, 
     stop = float(movement.get("stop_distance", 2.0))
     reach = movement.get("interact_range")
     forward = movement.get("forward_key", "w")
-    env = session.input_env()
+    inp = session.input()
     started = time.time()
     target_id, best, stalls, walked = None, 0.0, 0, False
     while True:
-        st = fresh_state(session, now_ms())
+        st = fresh_state(session, now_ms(), inp=inp)
         if not world_screen(st, profile):
             return {"ok": False, "error": "not in the world", "screen": st and st.get("screen")}
         targets = (st.get("nearest") or {}).get(kind) or []
@@ -196,14 +222,27 @@ def walkto(session: Session, kind: str, max_seconds: float = 60.0) -> Dict[str, 
             stalls = 0 if walked else stalls
         walked = False
         if abs(t["bearing"]) > 10.0:
-            face(session, t["bearing"], tolerance=6.0, attempts=5)
+            face(session, t["bearing"], tolerance=6.0, attempts=5, inp=inp)
             continue
         speed = player.get(movement.get("speed_field", "speed")) or movement.get("default_speed", 4.0)
-        xdo.hold(env, forward, min(1.0, max(0.05, (t["distance"] - stop + 0.4 * stop) / float(speed))))
+        inp.hold(forward, min(1.0, max(0.05, (t["distance"] - stop + 0.4 * stop) / float(speed))))
         walked = True
 
 
 def await_screen(session: Session, screen: str, seconds: float = 15.0) -> Dict[str, Any]:
+    """Waits until state.json shows ``screen``: up to ``seconds`` of wall time, or of game time when stepped."""
+    if session.info().get("driver") == "strata" and session.info().get("clock") == "stepped":
+        inp = session.input()
+        st = read_state(session)
+        frames = 0
+        while True:
+            if st is not None and st.get("screen") == screen:
+                return {"ok": True, "screen": screen, "frames": frames}
+            if frames * inp.step_seconds >= seconds:
+                return {"ok": False, "error": "still not on " + screen, "screen": st and st.get("screen")}
+            inp.step(AWAIT_FRAMES - 1)
+            st = fresh_state(session, now_ms(), timeout=STATE_INTERVAL_SEC, inp=inp)
+            frames += AWAIT_FRAMES
     deadline = time.time() + seconds
     st = None
     while time.time() < deadline:

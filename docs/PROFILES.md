@@ -12,6 +12,15 @@ checks one against [`profile.schema.json`](../src/playtester/data/schemas/profil
 | `kindling` | Kindling, a cozy first-person homestead game on Strata (C++) | `--playtest-out` |
 | `atman` | Atman, a first-person game about Advaita Vedanta on Strata (C++) | none (screenshots only); asks `questions` |
 | `demo` | the tiny test game in `playtester.demo` | `--playtest-out` |
+| `kindling-strata` | Kindling on the Strata driver (headless, no X server) | `--playtest-out` |
+| `atman-strata` | Atman on the Strata driver (headless, no X server) | none; asks `questions` |
+| `steading-strata` | steading, a colony simulation on Strata, on the Strata driver | none |
+| `orrery-strata` | orrery, the solar system from JPL data on Strata, on the Strata driver | none |
+
+The `-strata` profiles drive the game through Strata's drive channel instead
+of Xvfb and xdotool ([below](#drivers)). `kindling` and `kindling-strata` are
+the same game with the same smoke script, kept side by side so the two
+drivers can be compared.
 
 ## Fields
 
@@ -21,6 +30,7 @@ checks one against [`profile.schema.json`](../src/playtester/data/schemas/profil
 | `title` | yes | The game's name, as agents call it |
 | `description` | yes | One phrase agents read first ("a 3D colony-and-nations game: ...") |
 | `repository` | | `owner/name`, for issues and evidence |
+| `driver` | | `x11` (default) or `strata`; see [Drivers](#drivers) |
 | `build.command` | | Shell command run in the game's checkout that builds what `launch.command` runs |
 | `build.requires` | | The toolchain the build needs, a list of commands (e.g. `["dotnet"]`); `pt validate-profile` prints it |
 | `build.artifact` | | The built file whose modification time is the build's time, with the `launch` placeholders (default `launch.command[0]` when it is inside the game's checkout). `pt start` warns when it is older than the checkout's HEAD commit or an uncommitted edit |
@@ -34,7 +44,7 @@ checks one against [`profile.schema.json`](../src/playtester/data/schemas/profil
 | `launch.start_timeout_sec` | | How long `start` waits for the window (default 90) |
 | `launch.settle_sec` | | Wait this long after the window appears (games whose first frames are blank) |
 | `launch.lp_threads` | | llvmpipe threads per game unless `PT_LP_THREADS` is set (default 2) |
-| `window.title_regex` | yes | `xdotool search --name` pattern for the game's window |
+| `window.title_regex` | x11 only | `xdotool search --name` pattern for the game's window (not used by the Strata driver) |
 | `window.width`, `window.height` | | Window size (default 960x540); `PT_WIDTH`/`PT_HEIGHT` override |
 | `probe` | | `null` (screenshots only) or `{flag, ticks_per_second, world_screens, screens, since}`; see [PROBE_CONTRACT.md](PROBE_CONTRACT.md) |
 | `movement` | | For `face` and `walkto` (needs a probe); below |
@@ -91,6 +101,35 @@ tail and a `fail.png`. It runs in its own session (`smoke-<pid>` unless
 `--session NAME` is given; `$PT_SESSION` is ignored), never touches a session
 of that name that is already running, and stops the session it started when
 it finishes, unless `--keep` asks it to leave the game running.
+
+## Drivers
+
+`driver` says how a session runs the game and reaches it.
+
+- **`x11`** (the default): the game gets its own Xvfb display; input goes in
+  through `xdotool` and screenshots come out through ImageMagick's `import`.
+  Works for any game with a window.
+- **`strata`**: for games on the [Strata](https://github.com/Preponderous-Software/strata)
+  engine, built against ABI 1.12 or later. No X server, `xdotool` or
+  ImageMagick: the game renders on a headless EGL surface and takes its input
+  through Strata's drive channel (Strata `docs/DRIVE.md`). `pt start` starts a
+  small relay that listens on `drive.sock` in the session directory (mode
+  0600) and sets `STRATA_DRIVE` for the game, which connects to it; the game
+  never listens on anything. Every `pt` command keeps its name and meaning:
+  keys and mouse buttons become injected events (key names map to USB HID
+  scancodes, and an unknown name is an error), `look DX DY` is one exact
+  relative motion with no window edge to stop it, and `shot` asks the engine
+  for the frame. `drive.jsonl` records every line sent to the game.
+
+With the Strata driver, `pt start --clock stepped [--step SECS]` (default
+step 1/60 s) makes the game wait for the harness between frames: `wait`,
+`hold` and the closed-loop `await`, `face` and `walkto` run whole frames of
+game time, and `pt step N` runs exactly N. The same build, seed and commands
+then give the same frames, run after run, whatever the machine's load.
+`--clock free` (the default) keeps today's behaviour: the game runs in real
+time while the agent thinks. Games read the clock through Strata's
+`frameSeconds()`, and a driven game does not write the player's saves
+(each game's own change; see its log line "driven by a test harness").
 
 ## Adding a game
 

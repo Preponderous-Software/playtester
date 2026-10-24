@@ -34,6 +34,13 @@
       "type": "string",
       "description": "owner/name on GitHub, for issues and evidence"
     },
+    "driver": {
+      "enum": [
+        "x11",
+        "strata"
+      ],
+      "description": "How the harness runs and drives the game: x11 (default) gives it its own Xvfb and drives it with xdotool; strata runs a Strata game headless and drives it through its drive channel (Strata ABI 1.12, STRATA_DRIVE), with no X server"
+    },
     "build": {
       "type": "object",
       "additionalProperties": false,
@@ -128,14 +135,12 @@
     "window": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "title_regex"
-      ],
+      "required": [],
       "properties": {
         "title_regex": {
           "type": "string",
           "minLength": 1,
-          "description": "xdotool search --name pattern for the game's window"
+          "description": "xdotool search --name pattern for the game's window (required unless driver is strata)"
         },
         "width": {
           "type": "integer",
@@ -415,6 +420,25 @@
     "evidence_dir": {
       "type": "string",
       "description": "Where in the game's repository playtest evidence is committed (default docs/playtests)"
+    }
+  },
+  "if": {
+    "required": [
+      "driver"
+    ],
+    "properties": {
+      "driver": {
+        "const": "strata"
+      }
+    }
+  },
+  "else": {
+    "properties": {
+      "window": {
+        "required": [
+          "title_regex"
+        ]
+      }
     }
   }
 }

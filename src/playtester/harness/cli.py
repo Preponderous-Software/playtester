@@ -5,11 +5,15 @@
     PT_SESSION=s01 pt stop
 
 Session commands (need PT_SESSION; PT_ROOT is where sessions live)
-  start [--profile P] [--game-dir D] [--seed S] [--no-probe] [--width W --height H] [game args...]
+  start [--profile P] [--game-dir D] [--seed S] [--no-probe] [--width W --height H]
+        [--clock free|stepped [--step SECS]] [game args...]
                             Xvfb on a free display + the game; waits for its window
-                            (and first state.json); on failure prints the log tail and cleans up
+                            (and first state.json); on failure prints the log tail and cleans up.
+                            A "driver": "strata" profile needs no Xvfb: the game runs headless
+                            and is driven through its drive channel; --clock stepped makes it
+                            wait for pt between frames, so a run repeats frame for frame
   stop                      stop the game and its Xvfb (safe to repeat)
-  status                    running?, display, CPU/RSS, fps
+  status                    running?, display, CPU/RSS, fps (Strata driver: frame and clock)
   key KEY...                tap keys; a KEY may be a combo such as Shift_L+w
   hold KEY SECS             hold a key or combo
   click X Y [BUTTON]        click at window coordinates (hovers first)
@@ -21,7 +25,8 @@ Session commands (need PT_SESSION; PT_ROOT is where sessions live)
   type TEXT                 type text into a focused text field
   shot NAME                 screenshot of the game's window to shots/NAME.png; prints the path
   note [--shot NAME] TEXT   append a finding to findings.jsonl (optionally with a screenshot)
-  wait SECS                 sleep
+  wait SECS                 let SECS of game time pass (sleep; stepped: step SECS/step frames)
+  step N                    run exactly N frames (Strata driver, stepped clock only)
   log [N]                   tail of the game's log
   dir                       print the session directory
   report                    validate the session's report.json
@@ -45,7 +50,8 @@ Run commands
 
 Environment: PT_SESSION, PT_ROOT (default $TMPDIR/playtester), PT_PROFILE,
 PT_GAME_DIR, PT_WIDTH/PT_HEIGHT, PT_LP_THREADS (llvmpipe threads, default 2),
-PT_GAME_ARGS (extra game arguments for every start).
+PT_GAME_ARGS (extra game arguments for every start), PT_CLOCK/PT_STEP (pt start
+--clock/--step defaults, Strata driver).
 """
 
 import json
@@ -56,12 +62,13 @@ import sys
 import time
 from typing import Any, Dict, List, Optional
 
-from . import probe, xdo
+from . import inputs, probe, strata_keys
 from . import profile as profiles
 from .session import HarnessError, Session, now_ms, append_json, tail
+from .strata_driver import DriveError
 
 SESSION_COMMANDS = {"start", "stop", "status", "key", "hold", "click", "mousehold", "move", "look", "drag", "scroll",
-                    "type", "shot", "note", "wait", "log", "dir", "report", "state", "events", "await", "face",
+                    "type", "shot", "note", "wait", "step", "log", "dir", "report", "state", "events", "await", "face",
                     "walkto", "probe-check"}
 
 
@@ -79,22 +86,23 @@ def safe_name(name: str) -> str:
 
 
 def screenshot(session: Session, name: str) -> str:
-    session.need_game()
+    """shots/NAME.png, always inside the session directory (the name is sanitised)."""
+    inp = session.input()
     path = session.path("shots", safe_name(name) + ".png")
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    import subprocess
-    r = subprocess.run(["import", "-window", session.window or "root", path], env=session.env(),
-                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, universal_newlines=True)
-    if r.returncode != 0 or not os.path.isfile(path):
-        raise HarnessError("screenshot failed: %s" % r.stderr.strip())
-    return path
+    try:
+        return inp.screenshot(path)
+    except inputs.InputError as e:
+        raise HarnessError(str(e))
 
 
 def parse_start(args: List[str]) -> Dict[str, Any]:
     opts = {"profile": os.environ.get("PT_PROFILE"), "game_dir": os.environ.get("PT_GAME_DIR") or os.getcwd(),
             "seed": None, "probe": True, "width": os.environ.get("PT_WIDTH"), "height": os.environ.get("PT_HEIGHT"),
+            "clock": os.environ.get("PT_CLOCK"), "step": os.environ.get("PT_STEP"),
             "extra": []}  # type: Dict[str, Any]
-    takes = {"--profile": "profile", "--game-dir": "game_dir", "--seed": "seed", "--width": "width", "--height": "height"}
+    takes = {"--profile": "profile", "--game-dir": "game_dir", "--seed": "seed", "--width": "width", "--height": "height",
+             "--clock": "clock", "--step": "step"}
     i = 0
     while i < len(args):
         a = args[i]
@@ -123,8 +131,9 @@ def run_session_command(session: Session, cmd: str, args: List[str]) -> int:
         opts = parse_start(args)
         profile = profiles.load(opts["profile"] or "")
         info = session.start(profile, opts["game_dir"], opts["seed"], opts["extra"], use_probe=opts["probe"],
-                             width=opts["width"], height=opts["height"])
-        for warning in info["buildWarnings"]:
+                             width=opts["width"], height=opts["height"], clock=opts["clock"],
+                             step=float(opts["step"]) if opts["step"] else None)
+        for warning in info.get("buildWarnings", []):
             print("pt: warning: " + warning, file=sys.stderr)
         out(info)
     elif cmd == "stop":
@@ -134,33 +143,33 @@ def run_session_command(session: Session, cmd: str, args: List[str]) -> int:
         out(session.status())
     elif cmd == "key":
         _need(args, 1, "key KEY...")
-        env = session.input_env()
+        inp = session.input()
         for k in args:
-            xdo.tap(env, k)
+            inp.tap(k)
     elif cmd == "hold":
         _need(args, 2, "hold KEY SECS")
-        xdo.hold(session.input_env(), args[0], float(args[1]))
+        session.input().hold(args[0], float(args[1]))
     elif cmd == "click":
         _need(args, 2, "click X Y [BUTTON]")
-        xdo.click(session.input_env(), session.window or "", int(args[0]), int(args[1]), int(args[2]) if len(args) > 2 else 1)
+        session.input().click(int(args[0]), int(args[1]), int(args[2]) if len(args) > 2 else 1)
     elif cmd == "mousehold":
         _need(args, 1, "mousehold SECS [BUTTON]")
-        xdo.button_hold(session.input_env(), float(args[0]), int(args[1]) if len(args) > 1 else 1)
+        session.input().button_hold(float(args[0]), int(args[1]) if len(args) > 1 else 1)
     elif cmd == "move":
         _need(args, 2, "move X Y")
-        xdo.move(session.input_env(), session.window or "", int(args[0]), int(args[1]))
+        session.input().move(int(args[0]), int(args[1]))
     elif cmd == "look":
         _need(args, 2, "look DX DY")
-        xdo.move_relative(session.input_env(), int(float(args[0])), int(float(args[1])))
+        session.input().look(int(float(args[0])), int(float(args[1])))
     elif cmd == "drag":
         _need(args, 5, "drag X1 Y1 X2 Y2 SECS [BUTTON]")
         x1, y1, x2, y2 = (int(a) for a in args[:4])
-        xdo.drag(session.input_env(), session.window or "", x1, y1, x2, y2, float(args[4]), int(args[5]) if len(args) > 5 else 3)
+        session.input().drag(x1, y1, x2, y2, float(args[4]), int(args[5]) if len(args) > 5 else 3)
     elif cmd == "scroll":
         _need(args, 1, "scroll N")
-        xdo.scroll(session.input_env(), int(args[0]))
+        session.input().scroll(int(args[0]))
     elif cmd == "type":
-        xdo.type_text(session.input_env(), " ".join(args))
+        session.input().type_text(" ".join(args))
     elif cmd == "shot":
         _need(args, 1, "shot NAME")
         print(screenshot(session, args[0]))
@@ -180,7 +189,16 @@ def run_session_command(session: Session, cmd: str, args: List[str]) -> int:
         out(entry)
     elif cmd == "wait":
         _need(args, 1, "wait SECS")
-        time.sleep(float(args[0]))
+        if session.game_alive():
+            session.input().wait(float(args[0]))
+        else:
+            time.sleep(float(args[0]))
+    elif cmd == "step":
+        _need(args, 1, "step N")
+        inp = session.input()
+        if not isinstance(inp, inputs.StrataInput):
+            raise HarnessError("pt step needs a Strata-driver session started with --clock stepped")
+        out(inp.step(int(args[0])))
     elif cmd == "log":
         sys.stdout.write(tail(session.path("game.log"), int(args[0]) if args else 25))
     elif cmd == "dir":
@@ -298,7 +316,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 p.get("process_name", "-")))
             return 0
         raise HarnessError("unknown command: %s (pt help)" % cmd)
-    except (HarnessError, profiles.ProfileError, RuntimeError) as e:
+    except (HarnessError, profiles.ProfileError, RuntimeError, DriveError, strata_keys.UnknownKey) as e:
         print("pt: %s" % e, file=sys.stderr)
         return 1
     except (ValueError, IndexError) as e:

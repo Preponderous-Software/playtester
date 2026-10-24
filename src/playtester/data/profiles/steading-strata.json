@@ -1,0 +1,101 @@
+{
+  "$comment": "steading on the Strata driver (RFC 0027): headless, driven through Strata's drive channel, no X server. A driven steading writes only the new colony's slot in the session's data directory and never autosaves or saves on exit. No probe yet: screenshot-only.",
+  "name": "steading-strata",
+  "title": "steading",
+  "description": "a colony simulation on Strata: settlers gather, build huts and try to last; you designate work and plan huts from a map view or a free-fly camera (Strata driver: headless; --clock stepped repeats frame for frame)",
+  "repository": "Preponderous-Software/steading",
+  "driver": "strata",
+  "build": {
+    "command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSTEADING_WITH_STRATA=ON -DCMAKE_PREFIX_PATH=$OPENUSD && cmake --build build --target steading -j4",
+    "requires": [
+      "cmake",
+      "c++",
+      "an OpenUSD prebuilt (see the steading README)"
+    ]
+  },
+  "launch": {
+    "command": [
+      "{game_dir}/build/steading"
+    ],
+    "args": [
+      "--width",
+      "{width}",
+      "--height",
+      "{height}",
+      "--game-dir",
+      "{game_dir}",
+      "--slot",
+      "{data_dir}/slot"
+    ],
+    "cwd": "{session_dir}",
+    "seed_args": [
+      "--new",
+      "{seed}"
+    ],
+    "start_timeout_sec": 90,
+    "settle_sec": 1,
+    "lp_threads": 4
+  },
+  "window": {
+    "width": 640,
+    "height": 360
+  },
+  "crash_patterns": [
+    "steading: .*",
+    "SAVE FAILED",
+    "Segmentation fault",
+    "terminate called"
+  ],
+  "process_name": "build/steading",
+  "agent_notes": "steading-strata.md",
+  "cheats": "Do not pass --headless, --ticks or --mods unless your goal says so.",
+  "smoke": {
+    "description": "Let the colony run, speed it up, then fly the camera over it, with screenshots",
+    "seed": 42,
+    "steps": [
+      [
+        "wait",
+        "2"
+      ],
+      [
+        "shot",
+        "01-map"
+      ],
+      [
+        "key",
+        "equal",
+        "equal"
+      ],
+      [
+        "wait",
+        "3"
+      ],
+      [
+        "key",
+        "Tab"
+      ],
+      [
+        "hold",
+        "w",
+        "1"
+      ],
+      [
+        "hold",
+        "Down",
+        "0.5"
+      ],
+      [
+        "shot",
+        "02-fly"
+      ]
+    ]
+  },
+  "goals": [
+    {
+      "goal": "Keep a new colony alive for its first season as a player who has never seen the game; note every moment of confusion.",
+      "budget_min": 30,
+      "seed": 42
+    }
+  ],
+  "evidence_dir": "docs/playtests"
+}
