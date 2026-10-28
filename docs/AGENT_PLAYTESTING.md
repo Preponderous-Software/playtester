@@ -10,7 +10,8 @@ writes a structured report, and the reports are merged into one summary.
   the mouse ([`playtester.harness`](../src/playtester/harness/)).
 - A **profile** tells it how to build, start, see and steer one game
   ([PROFILES.md](PROFILES.md)). Beyond Nations, Kindling, Atman and a small demo game
-  are bundled.
+  are bundled, and Kindling, Atman, steading, orrery and Sisyphus also have
+  profiles on the [Strata driver](#the-strata-driver).
 - A game may implement the optional **probe**: it writes what the player sees
   to `state.json` and `events.jsonl`, so agents can steer precisely and
   objectives can be timed from the game's own events
@@ -85,9 +86,9 @@ scripted session. It runs in a session of its own (`smoke-<pid>`, or
 
 | Command | |
 | --- | --- |
-| `start [--profile P] [--game-dir D] [--seed S] [--no-probe] [game args]` | claims a free display (`:100`-`:199`) under a lock, starts Xvfb and the game (with the probe flag when the profile has one), waits for the window (and the first `state.json`), moves it to the origin; on failure prints the log tail and cleans up. Warns (and records `buildWarnings` in `session.json`) when the build is older than the checkout's HEAD commit or an uncommitted edit, so the session would run old code under the checkout's `commit`; it never builds, so rebuild with the profile's `build.command` and start again. Arguments it does not know go to the game; after `--` everything does |
+| `start [--profile P] [--game-dir D] [--seed S] [--no-probe] [--width W --height H] [--clock free\|stepped [--step SECS]] [game args]` | claims a free display (`:100`-`:199`) under a lock, starts Xvfb and the game (with the probe flag when the profile has one), waits for the window (and the first `state.json`), moves it to the origin; on failure prints the log tail and cleans up. Warns (and records `buildWarnings` in `session.json`) when the build is older than the checkout's HEAD commit or an uncommitted edit, so the session would run old code under the checkout's `commit`; it never builds, so rebuild with the profile's `build.command` and start again. Arguments it does not know go to the game; after `--` everything does. A Strata-driver profile starts no Xvfb; `--clock stepped` makes its game wait for `pt` between frames ([below](#the-strata-driver)) |
 | `stop` | stops the game (its whole process group), then its Xvfb; safe to repeat. A pid is signalled only while it is still the process the session started (its start time is recorded beside the pid) |
-| `status` | running?, display, CPU, memory, fps, ticks a second |
+| `status` | running?, display, CPU, memory, fps, ticks a second (Strata driver: frame and clock) |
 | `key K...`, `hold K SECS` | xdotool key names; combos as `Shift_L+w` |
 | `click X Y [BTN]`, `move X Y`, `drag X1 Y1 X2 Y2 SECS [BTN]`, `mousehold SECS [BTN]`, `scroll N`, `type TEXT` | window coordinates; a click hovers 0.3 s first |
 | `look DX DY` | relative pointer motion, for mouse-look games |
@@ -98,7 +99,9 @@ scripted session. It runs in a session of its own (`smoke-<pid>`, or
 | `walkto KIND [MAXSEC]` | the nearest KIND in `state.json`'s `nearest`: face it, walk in bursts sized from the distance, re-face, stop within `stop_distance`; reports when stuck |
 | `probe-check [DIR]` | validate probe output against the contract |
 | `report` | validate the session's `report.json` |
-| `log [N]`, `dir`, `wait SECS` | |
+| `wait SECS` | let SECS of game time pass (a stepped clock runs SECS / step frames) |
+| `step N` | run exactly N frames (Strata driver, stepped clock only) |
+| `log [N]`, `dir` | |
 | `smoke`, `measure N`, `prompt`, `aggregate RUN`, `install-skill REPO`, `profiles`, `validate-profile P` | run-level commands |
 
 `face` turns by holding a key for a computed time rather than by dragging the
@@ -165,7 +168,7 @@ keeps running, so a slower world costs less than it sounds.
 
 Games on Strata (ABI 1.12 or later) can be run with `"driver": "strata"`
 profiles (`kindling-strata`, `atman-strata`, `steading-strata`,
-`orrery-strata`; [PROFILES.md](PROFILES.md#drivers)): no Xvfb, `xdotool` or
+`orrery-strata`, `sisyphus-strata`; [PROFILES.md](PROFILES.md#drivers)): no Xvfb, `xdotool` or
 ImageMagick, input injected through the engine, exact mouse look, and with
 `pt start --clock stepped` a world that waits for the agent. Measured on the
 same machine, Kindling at 640x360 with 4 llvmpipe threads:
@@ -217,7 +220,11 @@ $PT_ROOT/                                the run
     out/state.json, out/events.jsonl     the game's probe
     data/                                the game's saves and settings for this session
     game.log, xvfb.log
-    display, game.pid, xvfb.pid, window  while running
+    display, game.pid, xvfb.pid, window  while running (X11 driver)
+    drive.jsonl                          every drive-channel line, both ways (Strata driver)
+    relay.log, relay.pid, drive.sock, control.sock   while running (Strata driver; the sockets
+                                         go to a private /tmp directory when this path is too
+                                         long for a socket, and session.json names them)
 ```
 
 ## Reading the summary

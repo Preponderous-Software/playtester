@@ -38,7 +38,7 @@ Probe commands (games with a probe; docs/PROBE_CONTRACT.md)
   walkto KIND [MAXSEC]      walk to the nearest KIND until it is within reach
   probe-check [DIR]         validate state.json and events.jsonl against the probe contract
 Run commands
-  smoke [--profile P] [--game-dir D] [--session NAME] [--keep]
+  smoke [--profile P] [--game-dir D] [--session NAME] [--clock free|stepped [--step SECS]] [--keep]
                             scripted session proving the harness on this machine
                             (its own session, smoke-<pid> by default; --keep leaves it running)
   measure N [SETTLE] [SAMPLE] [--brief]  cost of N concurrent sessions
