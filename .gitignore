@@ -47,3 +47,4 @@ screenshots/
 *.png
 *.jpg
 !tests/fixtures/**/*.png
+!docs/media/*.png
