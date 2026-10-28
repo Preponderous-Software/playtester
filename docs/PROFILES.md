@@ -16,6 +16,7 @@ checks one against [`profile.schema.json`](../src/playtester/data/schemas/profil
 | `atman-strata` | Atman on the Strata driver (headless, no X server) | none; asks `questions` |
 | `steading-strata` | steading, a colony simulation on Strata, on the Strata driver | none |
 | `orrery-strata` | orrery, the solar system from JPL data on Strata, on the Strata driver | none |
+| `sisyphus-strata` | Sisyphus, a game about software upkeep on Strata, on the Strata driver | none; asks `questions` |
 
 The `-strata` profiles drive the game through Strata's drive channel instead
 of Xvfb and xdotool ([below](#drivers)). `kindling` and `kindling-strata` are

@@ -1,0 +1,92 @@
+{
+  "$comment": "Sisyphus on the Strata driver: headless, driven through Strata's drive channel, no X server. A driven Sisyphus never saves and is silent. Sisyphus has no probe yet, so sessions are screenshot-only.",
+  "name": "sisyphus-strata",
+  "title": "Sisyphus",
+  "description": "a game on Strata about software upkeep: push the boulder that is your software up a terraced hill (each terrace ships a release and adds a module), patch the modules as they rot, and at the summit watch it all roll back down (Strata driver: headless; --clock stepped repeats frame for frame)",
+  "repository": "Preponderous-Software/sisyphus",
+  "driver": "strata",
+  "build": {
+    "command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSISYPHUS_BUILD_TESTS=OFF && cmake --build build --target sisyphus -j4",
+    "requires": [
+      "cmake",
+      "c++"
+    ]
+  },
+  "launch": {
+    "command": [
+      "{game_dir}/build/sisyphus"
+    ],
+    "args": [
+      "--width",
+      "{width}",
+      "--height",
+      "{height}",
+      "--new"
+    ],
+    "cwd": "{session_dir}",
+    "seed_args": [
+      "--seed",
+      "{seed}"
+    ],
+    "start_timeout_sec": 90,
+    "settle_sec": 1,
+    "lp_threads": 4
+  },
+  "window": {
+    "width": 640,
+    "height": 360
+  },
+  "crash_patterns": [
+    "sisyphus: .*(error|failed).*",
+    "Segmentation fault",
+    "terminate called"
+  ],
+  "process_name": "build/sisyphus",
+  "agent_notes": "sisyphus-strata.md",
+  "cheats": "Do not use `--autopilot` or `--headless` unless your goal says so.",
+  "smoke": {
+    "description": "Look at the boulder, walk into it and push a little, with a screenshot before and after",
+    "seed": 1,
+    "steps": [
+      [
+        "wait",
+        "1"
+      ],
+      [
+        "shot",
+        "01-start"
+      ],
+      [
+        "hold",
+        "w",
+        "3"
+      ],
+      [
+        "shot",
+        "02-pushed"
+      ]
+    ]
+  },
+  "goals": [
+    {
+      "goal": "Play as a brand-new player who has never heard of the game. Read the HUD and the first message, work out how to push the boulder and how to patch a module, and get as far up the hill as you can (each terrace is a release: 0.1, 0.2, ...). Note every moment of confusion, and answer the questions at the end.",
+      "budget_min": 45,
+      "seed": 1
+    },
+    {
+      "goal": "Upkeep: push to the second terrace (0.2), then stay there a while and keep the boulder alive: patch modules as issues arrive (hold E), roll the boulder back from above to reach a module underneath, and retire one module (hold R). Say whether you could always tell which module was in trouble and where it was. Then push on as far as your time allows, and answer the questions at the end.",
+      "budget_min": 40,
+      "seed": 2
+    },
+    {
+      "goal": "The whole climb: get the boulder to the summit (1.0), watch what happens there, follow it back down to the trailhead, and then sit (Q) and look at the view for a while. Note where the climb felt unfair, too slow or too easy, and answer the questions at the end.",
+      "budget_min": 50,
+      "seed": 3
+    }
+  ],
+  "evidence_dir": "docs/playtests",
+  "questions": [
+    "In your own words, what did you think the game was about? What did the boulder, the terraces and the rot stand for?",
+    "Did the rot and the upkeep feel fair, or arbitrary? What was hardest to tell or to do?"
+  ]
+}
