@@ -66,6 +66,8 @@ To playtest your own game, write a profile for it: see [Adding a game](docs/PROF
 
 The profiles start a game you have cloned and built; pass its checkout with `--game-dir` (or `PT_GAME_DIR`). `pt validate-profile NAME` prints a profile's build command and the toolchain it needs.
 
+Games on the Strata engine can also run on the **Strata driver**, headless with no Xvfb, xdotool or ImageMagick, and with `pt start --clock stepped` a world that waits for the agent: `kindling-strata`, `atman-strata`, `steading-strata`, `orrery-strata` and `sisyphus-strata`. See [Drivers](docs/PROFILES.md#drivers) and [The Strata driver](docs/AGENT_PLAYTESTING.md#the-strata-driver).
+
 **Beyond Nations** (`pt start --profile beyond-nations --game-dir ~/beyond-nations`):
 
 ```bash
@@ -279,5 +281,5 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/IMPLEMENTATION_PL
 
 ### Supported Games
 
-- **Agent playtest kit** – the demo game, Beyond Nations, Kindling and Atman (see [Bundled games](#bundled-games)), and any game you write a profile for
+- **Agent playtest kit** – the demo game, Beyond Nations, Kindling and Atman, plus Kindling, Atman, steading, orrery and Sisyphus on the Strata driver (see [Bundled games](#bundled-games)), and any game you write a profile for
 - **Automation framework** – Ophidian and Roam templates with mocked implementations, and a base for your own automators
