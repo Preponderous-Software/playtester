@@ -97,6 +97,21 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --target a
 
 A game without a probe can still be playtested from screenshots alone; the probe adds precise state, events and the `await`, `face` and `walkto` commands.
 
+## Ghost trails
+
+`pt ghosts` replays recorded sessions as fading coloured paths, one colour a session, so a run shows at a glance where players went, where they lingered and where they gave up: a **ring** marks a stall, a **cube** a death, a **pin** where the session ended.
+
+![Three Kindling sessions as ghost trails, rendered with Strata](docs/media/ghosts-kindling.gif)
+
+*Three scripted Kindling sessions on the Strata driver's stepped clock ([how they were recorded](docs/media/ghosts-kindling/record.sh)): s01 walks in to the hearth and on to the window and debris, s02 wanders the yard and stands by the mare for half a minute, s03 walks in, turns and stands still for 25 seconds. Rendered with [Strata](https://github.com/Preponderous-Software/strata), headless on llvmpipe.*
+
+```bash
+pt ghosts $PT_ROOT -o ghosts.png                  # every session of a run
+pt ghosts run-a run-b --gif ghosts.gif           # two runs, replayed side by side
+```
+
+Positions come from `track.jsonl`, which `pt` writes from the probe's `state.json` as a session is played, so every game with a probe has one. Rendering needs Strata's Python binding (`pip install "strata-engine @ git+https://github.com/Preponderous-Software/strata#subdirectory=bindings/python"`), which playtester does not depend on. See [Ghost trails](docs/AGENT_PLAYTESTING.md#ghost-trails).
+
 ## The automation framework (experimental)
 
 The framework captures screenshots of a game running on your desktop, asks a decision engine for an action and sends key presses. **The decision engine is mocked** (it cycles through a fixed list of actions), and the Ophidian and Roam presets are templates with mocked implementations. It needs a graphical desktop (X11, Wayland, Windows or macOS) and the `automation` extra, which adds pillow, pyautogui and pynput:
@@ -268,7 +283,7 @@ This project is in active development.
 ### Current Status
 
 ✅ **Implemented:**
-- The agent playtest kit: headless sessions, the `pt` command, game profiles, the probe contract, the agent prompt, report validation and aggregation, the `/playtest` coordinator skill
+- The agent playtest kit: headless sessions, the `pt` command, game profiles, the probe contract, the agent prompt, report validation and aggregation, ghost trails of where players went (`pt ghosts`, rendered with Strata), the `/playtest` coordinator skill
 - Unit and end-to-end tests for the kit, run in CI
 - The automation framework's architecture and loop, screenshot capture and action execution
 - Game-specific automation templates (Ophidian, Roam), with mocked implementations

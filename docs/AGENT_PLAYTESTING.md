@@ -102,7 +102,7 @@ scripted session. It runs in a session of its own (`smoke-<pid>`, or
 | `wait SECS` | let SECS of game time pass (a stepped clock runs SECS / step frames) |
 | `step N` | run exactly N frames (Strata driver, stepped clock only) |
 | `log [N]`, `dir` | |
-| `smoke`, `measure N`, `prompt`, `aggregate RUN`, `install-skill REPO`, `profiles`, `validate-profile P` | run-level commands |
+| `smoke`, `measure N`, `prompt`, `aggregate RUN`, `ghosts RUN...`, `install-skill REPO`, `profiles`, `validate-profile P` | run-level commands; `ghosts` is [below](#ghost-trails) |
 
 `face` turns by holding a key for a computed time rather than by dragging the
 mouse: a key held for a time turns by the same amount at any frame rate, while
@@ -216,6 +216,8 @@ $PT_ROOT/                                the run
     findings.jsonl                       pt note: raw notes as they were taken
     actions.jsonl                        every pt command with its time, for repro
     trace.jsonl                          each step of face and walkto
+    track.jsonl                          where the player was: player.x and player.z from
+                                         state.json each time pt reads it (pt ghosts draws it)
     shots/*.png                          screenshots
     out/state.json, out/events.jsonl     the game's probe
     data/                                the game's saves and settings for this session
@@ -248,6 +250,63 @@ $PT_ROOT/                                the run
 4. **Problems with the run:** missing or invalid reports, and games that
    crashed (a match of the profile's `crash_patterns` in `game.log` also
    becomes a blocker finding).
+
+## Ghost trails
+
+`pt ghosts` draws where players went: each session's path as a coloured
+trail over a plain ground sized to the runs, fading towards where it began,
+with a **cube** where the player died (`player_death`), a **ring** where they
+stalled and a **pin** where the session ended. It is rendered with the
+[Strata](https://github.com/Preponderous-Software/strata) engine, headless.
+
+![Three Kindling sessions as ghost trails](media/ghosts-kindling.png)
+
+```bash
+pt ghosts $PT_ROOT -o ghosts.png                        # every session of a run, whole
+pt ghosts docs/playtests/1.2.0 --gif ghosts.gif         # committed evidence with its track.jsonl
+pt ghosts run-a/s01 run-b/s01 --mp4 compare.mp4         # any sessions, side by side
+pt ghosts $PT_ROOT --dry-run                            # what it read, as JSON; no render
+```
+
+| Option | |
+| --- | --- |
+| `-o`/`--png FILE` | the still: every run whole (the default, `ghosts.png`, when no output is named) |
+| `--gif FILE`, `--mp4 FILE` | the replay: all runs from their starts at once, each trail's tail fading behind its head (`--frames`, default 60, `--fps`, default 12); the GIF needs Pillow or ImageMagick, the MP4 ffmpeg |
+| `--size WxH` | default 960x540 |
+| `--stall-secs S`, `--stall-radius R` | a stall is S seconds (default 20) within R world units (default 3% of the run's extent) |
+| `--title TEXT` | a heading over the legend |
+| `--strata-lib PATH`, `--strata-release VERSION` | which libstrata (default `STRATA_LIBRARY`) |
+
+**Where the positions come from.** Every time `pt` reads a session's
+`state.json` (every probe command, and after every other session command) it
+appends the player's `x` and `z` to `track.jsonl`, so any game with a probe
+has a track without changing anything. Positions are taken when `pt` looks,
+so a `hold w 3` is a straight line from where it started to where it ended;
+`walkto` reads the state at every step. Events that carry `x` and `z`
+([optional](PROBE_CONTRACT.md#eventsjsonl)) add positions and put their markers
+exactly where they happened; otherwise a death is marked at the position
+nearest its tick. Sessions recorded before the track existed fall back to
+`trace.jsonl` (the steps of `walkto`), and sessions with no positions at all
+are skipped with a note.
+
+**Time.** A run's clock is game seconds (ticks over the session's
+`ticksPerSecond`) when every position has a tick, else wall seconds; the
+legend says which. A stall on a free clock includes an agent's thinking
+time, which is when a person would be standing still too; on a stepped clock
+only `wait` and turning in place pass game time without moving.
+
+**Rendering** needs Strata's Python binding and a libstrata; neither is a
+dependency of playtester:
+
+```bash
+pip install "strata-engine @ git+https://github.com/Preponderous-Software/strata#subdirectory=bindings/python"
+pt ghosts RUN --strata-release 0.6.0 -o ghosts.png     # fetches the released library, checked by SHA-256
+```
+
+It uses Mesa's software rasteriser (`LIBGL_ALWAYS_SOFTWARE=1`, as the harness
+does for games) unless the environment says otherwise, so it needs no GPU and
+no display. Reading runs and laying out the scene (`playtester.ghosts.load_runs`,
+`build_frame`) are standard-library Python.
 
 ## Evidence in the game's repository
 

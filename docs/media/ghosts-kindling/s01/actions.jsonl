@@ -1,0 +1,22 @@
+{"t": 1793196316588, "cmd": "start", "args": ["--profile", "kindling-strata", "--game-dir", "~/kindling", "--seed", "1881", "--clock", "stepped"]}
+{"t": 1793196328130, "cmd": "await", "args": ["WORLD", "30"]}
+{"t": 1793196328199, "cmd": "key", "args": ["F1"]}
+{"t": 1793196329481, "cmd": "walkto", "args": ["door", "40"]}
+{"t": 1793196334789, "cmd": "hold", "args": ["w", "0.5"]}
+{"t": 1793196341329, "cmd": "hold", "args": ["w", "0.5"]}
+{"t": 1793196347787, "cmd": "hold", "args": ["w", "0.5"]}
+{"t": 1793196353275, "cmd": "walkto", "args": ["hearth", "40"]}
+{"t": 1793196373988, "cmd": "hold", "args": ["Down", "1"]}
+{"t": 1793196385279, "cmd": "hold", "args": ["Up", "1.5"]}
+{"t": 1793196397501, "cmd": "hold", "args": ["Right", "0.4"]}
+{"t": 1793196401010, "cmd": "hold", "args": ["Down", "1"]}
+{"t": 1793196410684, "cmd": "hold", "args": ["Up", "1.5"]}
+{"t": 1793196422519, "cmd": "hold", "args": ["Right", "0.4"]}
+{"t": 1793196424924, "cmd": "hold", "args": ["Down", "1"]}
+{"t": 1793196430823, "cmd": "hold", "args": ["Up", "1.5"]}
+{"t": 1793196439000, "cmd": "hold", "args": ["Right", "0.4"]}
+{"t": 1793196440951, "cmd": "walkto", "args": ["window", "40"]}
+{"t": 1793196460350, "cmd": "walkto", "args": ["debris", "40"]}
+{"t": 1793196461004, "cmd": "walkto", "args": ["debris", "40"]}
+{"t": 1793196461658, "cmd": "walkto", "args": ["hearth", "40"]}
+{"t": 1793196475662, "cmd": "stop", "args": []}

@@ -1,0 +1,15 @@
+{
+  "session": "s02",
+  "profile": "kindling-strata",
+  "driver": "strata",
+  "clock": "stepped",
+  "step": 0.016666666666666666,
+  "seed": "1881",
+  "version": "0.1.2",
+  "commit": "7ecf1fe",
+  "strata": "0.7.0",
+  "abi": "1.12",
+  "size": "640x360",
+  "ticksPerSecond": 30,
+  "startedAtMs": 1793196482808
+}
