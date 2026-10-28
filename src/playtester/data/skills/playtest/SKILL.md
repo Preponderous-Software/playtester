@@ -117,8 +117,9 @@ record the exact commit in its README. Whoever cuts the release renames the
 directory if the release turns out to be a different version.
 
 Copy in `summary.md`, `summary.json`, every session's `report.json`,
-`session.json`, `actions.jsonl`, `findings.jsonl`, `out/events.jsonl` and the
-screenshots that findings cite. Leave out `game.log`, `state.json`, the
+`session.json`, `actions.jsonl`, `findings.jsonl`, `track.jsonl`, `out/events.jsonl` and the
+screenshots that findings cite. Where the Strata binding is installed, `pt ghosts
+$PT_ROOT -o <dir>/ghosts.png` draws where every session went for the README. Leave out `game.log`, `state.json`, the
 `data/` folder, the filled prompts and screenshots no finding uses. Keep the
 total small (shrink screenshots if needed). Write a README with the build,
 commit, date, goals, seeds, budgets, sessions and anything that went wrong in

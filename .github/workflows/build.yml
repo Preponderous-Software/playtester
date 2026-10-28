@@ -74,6 +74,19 @@ jobs:
           for p in $(pt profiles | cut -d" " -f1); do pt validate-profile "$p"; done
           PT_ROOT="$RUNNER_TEMP/pt-smoke" pt smoke --profile demo
 
+      # pt ghosts renders with the Strata engine, which the kit does not
+      # depend on: the tests above skip the real renders. Here the Strata
+      # Python binding (pinned to a commit) fetches the released libstrata,
+      # verified by its SHA-256, and the renders run headless on llvmpipe.
+      - name: Ghost trails rendered with Strata
+        run: |
+          sudo apt-get install -y -qq --no-install-recommends libegl1 libgl1-mesa-dri
+          pip install "strata-engine @ git+https://github.com/Preponderous-Software/strata@5b6fcd37186ebc0b1a91ce5b469ea1b330cbdcac#subdirectory=bindings/python"
+          export STRATA_LIBRARY="$(python -c 'import strata; print(strata.fetch_release("0.6.0"))')"
+          python -m unittest tests.test_ghosts -v 2>&1 | tee ghosts.log
+          if grep -q "skipped" ghosts.log; then echo "a Strata render was skipped"; exit 1; fi
+          pt ghosts tests/fixtures/ghosts -o "$RUNNER_TEMP/ghosts.png" --gif "$RUNNER_TEMP/ghosts.gif" --frames 8
+
       - name: Install the automation extra
         run: pip install -e ".[automation]"
 

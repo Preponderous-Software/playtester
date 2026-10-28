@@ -41,7 +41,63 @@ def state_path(session: Session) -> str:
 
 
 def read_state(session: Session) -> Optional[Dict[str, Any]]:
-    return read_json(state_path(session))
+    """The game's state.json, or None; a world state's position goes to the track."""
+    st = read_json(state_path(session))
+    if isinstance(st, dict):
+        record_position(session, st)
+    return st
+
+
+# The last position this process wrote to each session's track, so a polling
+# loop (await, walkto) adds a line only when the state changed.
+_last_tracked = {}  # type: Dict[str, Any]
+
+
+def _last_track_line(path: str) -> Any:
+    """(t, tick, x, z) of the track's last line, so another pt process does not repeat it."""
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - 512))
+            last = json.loads(f.read().decode("utf-8", "replace").strip().splitlines()[-1])
+        return (last.get("t"), last.get("tick"), last.get("x"), last.get("z"))
+    except (OSError, ValueError, IndexError, AttributeError):
+        return None
+
+
+def record_position(session: Session, st: Dict[str, Any]) -> bool:
+    """Appends the player's position in ``st`` to the session's ``track.jsonl``.
+
+    The track is the harness's own record of where the player was, taken from
+    the probe's ``state.json`` whenever the harness reads it (every probe
+    command, and after every session command). It needs nothing new from the
+    game: ``player.x`` and ``player.z`` are already required in a world.
+    ``pt ghosts`` draws it. Returns True if a line was written.
+    """
+    if not st.get("world"):
+        return False
+    player = st.get("player")
+    if not isinstance(player, dict):
+        return False
+    x, z = player.get("x"), player.get("z")
+    if not isinstance(x, (int, float)) or not isinstance(z, (int, float)) or isinstance(x, bool) or isinstance(z, bool):
+        return False
+    line = {"t": st.get("wallTimeMs") or now_ms(), "tick": st.get("tick"), "x": x, "z": z}  # type: Dict[str, Any]
+    key = (line["t"], line["tick"], x, z)
+    if session.dir not in _last_tracked:
+        _last_tracked[session.dir] = _last_track_line(session.path("track.jsonl"))
+    if _last_tracked[session.dir] == key:
+        return False
+    _last_tracked[session.dir] = key
+    if isinstance(player.get("y"), (int, float)):
+        line["y"] = player["y"]
+    if st.get("screen"):
+        line["screen"] = st["screen"]
+    try:
+        append_json(session.path("track.jsonl"), line)
+    except OSError:
+        return False
+    return True
 
 
 def fresh_state(session: Session, after_ms: int, timeout: float = 4.0, inp: _Any = None) -> Optional[Dict[str, Any]]:

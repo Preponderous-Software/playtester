@@ -73,6 +73,10 @@ Optional, with fixed meanings when present:
 | `player.alive` | |
 | `nearest` | Kind -> list of `{name, id, distance, bearing}`, closest first. `bearing` is degrees from where the player faces, -180 to 180, **+ to the right**. `walkto KIND` steers by it |
 
+`pt` also keeps its own record of where the player was: every time it reads
+`state.json` it appends `player.x` and `player.z` to the session's
+`track.jsonl`, which `pt ghosts` draws. A game needs nothing more for that.
+
 Anything else is the game's own: Beyond Nations adds the era, season,
 inventory and world-event options; Kindling adds the HUD checklist, what the
 crosshair is on and the restoration's numbers. `pt state` shows every
@@ -97,6 +101,12 @@ One JSON object a line, **appended** as things happen, each with:
 | `type` | lower_snake_case |
 | `tick` | the world's tick when it happened (0 off the world) |
 | `wallTimeMs` | Unix milliseconds |
+
+Optional on any event:
+
+| Field | |
+| --- | --- |
+| `x`, `z` (`y`) | Where it happened, in the same coordinates as `player.x` and `player.z`. `pt ghosts` puts the event's marker there (a death, say) instead of at the player's last known position, and counts it as a position on the trail |
 
 Ticks never go backwards within one world; a `world` event starts a new one.
 A session restarted with the same name keeps appending, so a save and load

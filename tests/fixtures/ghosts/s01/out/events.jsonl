@@ -1,0 +1,3 @@
+{"type": "screen", "tick": 0, "wallTimeMs": 1792640000000, "from": null, "to": "WORLD"}
+{"type": "world", "tick": 0, "wallTimeMs": 1792640000000, "how": "created", "seed": 1881}
+{"type": "player_death", "tick": 1290, "wallTimeMs": 1792640043000, "total": 1}

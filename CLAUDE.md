@@ -50,6 +50,10 @@ PT_ROOT=/tmp/pt-smoke python3 -m playtester smoke --profile demo
 xvfb-run -a python3 ci/smoke_test.py            # the automation framework, needs a display
 ```
 
+`tests/test_ghosts.py` renders with Strata only when its Python binding and a
+libstrata (`STRATA_LIBRARY`) are available, and skips those tests otherwise; CI
+installs both in its own step.
+
 `tests/test_harness_live.py` plays the bundled demo game (`playtester.demo`, a
 ctypes/libX11 window) in real Xvfb sessions; it is skipped unless `Xvfb`,
 `xdotool` and `import` are installed. The rest of `tests/` needs nothing. Run
@@ -83,6 +87,7 @@ src/playtester/
                            probe.py (state/events, face, walkto), profile.py, smoke.py, measure.py
   agents/                  prompt.py (pt prompt), report.py (pt report), aggregate.py (pt aggregate)
   schema.py, probecheck.py Mini JSON Schema validator; probe contract checker
+  ghosts.py                pt ghosts: runs' track.jsonl as fading trails, rendered with Strata (optional binding)
   demo.py                  Tiny libX11 game implementing the probe (end-to-end tests)
   data/                    profiles/*.json + *.md, schemas/*.json, prompts/AGENT_PROMPT.md, skills/playtest/SKILL.md
   game_automator.py        Orchestrates capture -> decide -> execute cycles (run_single_cycle, run_continuous, stats)

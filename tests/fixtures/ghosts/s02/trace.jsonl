@@ -1,0 +1,9 @@
+{"t": 1792640000000, "what": "walkto", "kind": "tree", "x": -2.0, "z": 3.0, "yawDeg": 10}
+{"t": 1792640002000, "what": "walkto", "kind": "tree", "x": -3.0, "z": 3.5, "yawDeg": 10}
+{"t": 1792640004000, "what": "walkto", "kind": "tree", "x": -4.0, "z": 4.0, "yawDeg": 10}
+{"t": 1792640006000, "what": "walkto", "kind": "tree", "x": -5.0, "z": 4.5, "yawDeg": 10}
+{"t": 1792640008000, "what": "walkto", "kind": "tree", "x": -6.0, "z": 5.0, "yawDeg": 10}
+{"t": 1792640010000, "what": "walkto", "kind": "tree", "x": -7.0, "z": 5.5, "yawDeg": 10}
+{"t": 1792640012000, "what": "walkto", "kind": "tree", "x": -8.0, "z": 6.0, "yawDeg": 10}
+{"t": 1792640014000, "what": "walkto", "kind": "tree", "x": -9.0, "z": 6.5, "yawDeg": 10}
+{"t": 1792640003000, "what": "face", "yawDeg": 40}

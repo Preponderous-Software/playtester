@@ -44,6 +44,10 @@ Run commands
   measure N [SETTLE] [SAMPLE] [--brief]  cost of N concurrent sessions
   prompt ...                fill the agent prompt for one session (pt prompt for its options)
   aggregate RUN_DIR         merge a run's reports into summary.md and summary.json
+  ghosts RUN... [-o PNG] [--gif GIF] [--mp4 MP4] [--dry-run]
+                            draw recorded runs as fading coloured trails over the ground, with
+                            deaths, stalls and where each session ended (renders with Strata;
+                            pt ghosts --help)
   install-skill REPO [--profile P]   copy the coordinator skill into REPO/.claude/skills/playtest
   profiles                  list the bundled game profiles
   validate-profile PATH     check a profile file
@@ -283,7 +287,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             session = Session(os.environ.get("PT_SESSION", ""), os.environ.get("PT_ROOT"))
             os.makedirs(session.dir, exist_ok=True)
             session.log_action(cmd, args)
-            return run_session_command(session, cmd, args)
+            status = run_session_command(session, cmd, args)
+            if cmd not in ("start", "stop", "dir", "log", "report", "probe-check") and os.path.isdir(session.probe_dir):
+                probe.read_state(session)  # where the command left the player, for the track
+            return status
         if cmd == "smoke":
             from .smoke import main as smoke_main
             return smoke_main(args)
@@ -296,6 +303,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         if cmd == "aggregate":
             from ..agents.aggregate import main as aggregate_main
             return aggregate_main(["aggregate"] + args)
+        if cmd == "ghosts":
+            from ..ghosts import main as ghosts_main
+            return ghosts_main(args)
         if cmd == "install-skill":
             return install_skill(args)
         if cmd == "profiles":
