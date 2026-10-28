@@ -222,7 +222,9 @@ $PT_ROOT/                                the run
     game.log, xvfb.log
     display, game.pid, xvfb.pid, window  while running (X11 driver)
     drive.jsonl                          every drive-channel line, both ways (Strata driver)
-    relay.log, relay.pid, drive.sock, control.sock   while running (Strata driver)
+    relay.log, relay.pid, drive.sock, control.sock   while running (Strata driver; the sockets
+                                         go to a private /tmp directory when this path is too
+                                         long for a socket, and session.json names them)
 ```
 
 ## Reading the summary
