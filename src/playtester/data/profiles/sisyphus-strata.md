@@ -13,6 +13,7 @@ world waits for your commands.
 | R (held) | retire the module the crosshair is on |
 | F (held) | refactor the module the crosshair is on into the module it uses |
 | Q | sit and look at the view (walking gets up) |
+| Tab | the history of every climb so far (Tab again closes it) |
 | V | a view from straight behind him, or back to his eyes |
 | M | sound (a driven session is silent anyway) |
 | F1 | show or hide the controls |
@@ -36,6 +37,11 @@ Practical notes:
   tire him (a stamina bar appears in the HUD), and sitting (Q) rests him;
   each time the boulder rolls back to the trailhead a cairn is raised there,
   and standing at one shows how that climb went.
+- Since 0.3.0: now and then a contributor comes up from the town and
+  patches beside you for a while, then leaves; during the pause at the
+  summit, holding R for three seconds chooses a rewrite (it comes back down
+  light, and most users leave); showers make the path slick, and in winter
+  it snows.
 - In a stepped session `pt wait 2` runs exactly two seconds of game time;
   `pt step N` runs N frames.
 - F5 and F9 do nothing in a driven session: it never touches a save.
