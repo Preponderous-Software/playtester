@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Installing playtester no longer installs any Python packages: the agent playtest kit is standard-library Python. pillow, pyautogui and pynput, needed only by the experimental screenshot automation framework, moved to the `automation` extra (`pip install -e ".[automation]"`); using an automation class without it raises an `ImportError` that names the extra. The empty `headless` extra was removed
 - `pt smoke` runs in its own session (`smoke-<pid>` unless `--session` names one) instead of `$PT_SESSION`, refuses to touch a session of that name that is already running, and stops only a session it started
 - Pid files record each process's start time; `pt stop` (and every check of whether a session is running) signals a pid only while it still belongs to the process the session started, so a stale pid file never signals an unrelated process
+- `sisyphus-strata` agent notes follow Sisyphus 0.2.0 and 0.3.0: the game starts in first person, V is a view from straight behind, F (held) refactors and Tab shows the climb history, with notes on module dependencies, stamina, cairns, contributors, the rewrite at the summit and the weather
 
 ### Fixed
 - `GameAutomator.get_stats()` `screenshots_taken` counts every capture; it stayed `0` unless the `ScreenshotCapture` was created with `save_screenshots=True`
