@@ -103,8 +103,8 @@
 │  QUIT = 9            │  Quit game                      │
 └──────────────────────┴─────────────────────────────────┘
 
-Game-specific implementations can extend this enum
-with custom actions (values 10+).
+Game-specific implementations pick the subset they
+use; the enum cannot be subclassed to add members.
 ```
 
 ## Component Relationships

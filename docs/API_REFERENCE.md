@@ -412,9 +412,15 @@ CycleInfo = Dict[str, Any]
   input; custom decision engines should handle their own errors and return a
   safe default action, because `GameAutomator` does not catch exceptions from
   the engine.
-- Importing `playtester` imports `pyautogui`, which on Linux raises
-  `KeyError: 'DISPLAY'` when no X display is available (run under `xvfb-run`
-  headless).
+- `import playtester` needs neither a display nor the automation extra: the
+  automation classes are loaded lazily, on first access. Accessing
+  `GameAutomator`, `ScreenshotCapture` or `ActionExecutor` (or importing
+  `playtester.action_executor`, `playtester.screenshot_capture`,
+  `playtester.game_automator` or `playtester.games`) imports `pyautogui`, which
+  on Linux raises `KeyError: 'DISPLAY'` when no X display is available (run
+  under `xvfb-run` headless). Accessing one of the four classes in `__all__`
+  without the extra installed raises an `ImportError` that names the missing
+  package and the `pip install` command.
 
 ---
 
@@ -440,6 +446,10 @@ For optimal performance:
 ## Version Compatibility
 
 - Python: 3.8+
+
+The automation framework needs the `automation` extra
+(`pip install -e ".[automation]"`), which installs:
+
 - Pillow: 10.0.0+
 - PyAutoGUI: 0.9.54+
 - Pynput: 1.7.6+
