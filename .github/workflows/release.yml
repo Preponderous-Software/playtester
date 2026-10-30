@@ -9,7 +9,8 @@ permissions:
 
 jobs:
   build-and-attach:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest is Ubuntu 26.04, which setup-python has no 3.8 build for.
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
