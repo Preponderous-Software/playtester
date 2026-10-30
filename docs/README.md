@@ -155,7 +155,8 @@ The system uses enumerated `GameAction` values to represent possible actions:
 - `QUIT` - Quit game
 
 A game-specific implementation picks the subset of these actions its game
-uses and maps each to a key. `GameAction` cannot be subclassed to add
+uses; its executor turns each into input (`KeyboardActionExecutor` takes a
+key mapping; the bundled presets' executors are mocked). `GameAction` cannot be subclassed to add
 members: Python raises `TypeError: cannot extend enumeration` for an enum
 that already has members.
 
