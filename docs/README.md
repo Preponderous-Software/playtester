@@ -154,22 +154,28 @@ The system uses enumerated `GameAction` values to represent possible actions:
 - `MENU` - Open menu
 - `QUIT` - Quit game
 
-Game-specific implementations can extend these with custom actions.
+A game-specific implementation picks the subset of these actions its game
+uses and maps each to a key. `GameAction` cannot be subclassed to add
+members: Python raises `TypeError: cannot extend enumeration` for an enum
+that already has members.
 
 ## Creating Custom Game Automators
 
-To create an automator for a new game:
+To create an automator for a new game (`src/playtester/games/roam.py` and
+`ophidian.py` follow these steps):
 
-1. **Define game-specific actions** (optional)
+1. **Choose the game's actions**
 ```python
-class MyGameAction(GameAction):
-    CUSTOM_ACTION = 10
+MY_GAME_ACTIONS = [GameAction.MOVE_UP, GameAction.MOVE_DOWN, GameAction.ACTION_PRIMARY]
 ```
 
 2. **Create custom AI engine** (optional)
 ```python
 class MyGameAIEngine(MockedAIDecisionEngine):
-    def analyze_and_decide(self, screenshot, game_context):
+    def __init__(self):
+        super().__init__(MY_GAME_ACTIONS)
+
+    def analyze_and_decide(self, screenshot, game_context=None):
         # Custom decision logic
         return action
 ```
@@ -177,7 +183,7 @@ class MyGameAIEngine(MockedAIDecisionEngine):
 3. **Create custom action executor** (optional)
 ```python
 class MyGameActionExecutor(MockedActionExecutor):
-    def execute_action(self, action, action_params):
+    def execute_action(self, action, action_params=None):
         # Custom execution logic
         return success
 ```

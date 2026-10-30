@@ -184,10 +184,10 @@ playtester/
 
 ## Troubleshooting
 
-### "No module named 'PIL'"
-Install dependencies:
+### "No module named 'PIL'" (or "needs the automation extra")
+Install the automation extra:
 ```bash
-pip install pillow pyautogui pynput
+pip install -e ".[automation]"
 ```
 
 ### "KeyError: 'DISPLAY'"
