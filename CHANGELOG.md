@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `sisyphus-strata` agent notes follow Sisyphus 0.2.0 and 0.3.0: the game starts in first person, V is a view from straight behind, F (held) refactors and Tab shows the climb history, with notes on module dependencies, stamina, cairns, contributors, the rewrite at the summit and the weather
 
 ### Fixed
+- `pt walkto` no longer reports `stuck: not getting closer` for a `nearest` entry with no `id` while the distance is falling; without an `id`, a jump in distance of more than `stop_distance` counts as a new target
 - `GameAutomator.get_stats()` `screenshots_taken` counts every capture; it stayed `0` unless the `ScreenshotCapture` was created with `save_screenshots=True`
 - `pt` reports a missing field in a profile or the game's probe output, and a flag without its value, as an error message instead of a traceback; so does `pt aggregate`
 - Documentation: the shipped `/playtest` skill installs playtester from GitHub (it is not on PyPI); the README leads with the agent kit, a first run against the bundled demo game, and how to get and build the bundled games; dead GitHub Discussions links and the outdated SUMMARY.md were removed

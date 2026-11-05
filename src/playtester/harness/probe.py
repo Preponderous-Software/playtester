@@ -242,7 +242,7 @@ def walkto(session: Session, kind: str, max_seconds: float = 60.0) -> Dict[str, 
     forward = movement.get("forward_key", "w")
     inp = session.input()
     started = time.time()
-    target_id, best, stalls, walked = None, 0.0, 0, False
+    target_id, best, stalls, walked = None, None, 0, False
     while True:
         st = fresh_state(session, now_ms(), inp=inp)
         if not world_screen(st, profile):
@@ -265,8 +265,10 @@ def walkto(session: Session, kind: str, max_seconds: float = 60.0) -> Dict[str, 
             return {"ok": False, "error": "timed out", "kind": kind, "distance": t["distance"], "bearing": t["bearing"]}
         # Stuck means walking towards the same target without getting closer.
         # The nearest target can change on the way, and turning on the spot
-        # never closes the distance, so neither counts.
-        if t.get("id") != target_id:
+        # never closes the distance, so neither counts. id is optional in
+        # nearest: without one, only a jump in distance shows a different target.
+        if (best is None or t.get("id") != target_id
+                or (t.get("id") is None and t["distance"] > best + stop)):
             target_id, best, stalls = t.get("id"), t["distance"], 0
         elif walked and t["distance"] > best - 0.5:
             stalls += 1

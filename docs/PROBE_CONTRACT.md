@@ -71,7 +71,7 @@ Optional, with fixed meanings when present:
 | `objective` | `{number, title, progress, completed}`: the current objective |
 | `player.speed` | Walking speed in world units a second (`walkto` sizes its steps by it) |
 | `player.alive` | |
-| `nearest` | Kind -> list of `{name, id, distance, bearing}`, closest first. `bearing` is degrees from where the player faces, -180 to 180, **+ to the right**. `walkto KIND` steers by it |
+| `nearest` | Kind -> list of `{name, id, distance, bearing}`, closest first; `name` and `id` are optional. `bearing` is degrees from where the player faces, -180 to 180, **+ to the right**. `walkto KIND` steers by it, and without an `id` it can tell the nearest thing changed only from a jump in `distance` of more than `stop_distance` |
 
 `pt` also keeps its own record of where the player was: every time it reads
 `state.json` it appends `player.x` and `player.z` to the session's

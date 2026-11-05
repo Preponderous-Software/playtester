@@ -487,16 +487,45 @@ class WalktoTest(SessionTestCase):
         with mock.patch.object(probe, "fresh_state", side_effect=states):
             self.assertTrue(probe.walkto(self.session, "tree")["ok"])
 
-    def test_current_behaviour_a_target_with_no_id_is_stuck_while_getting_closer(self):
-        # A bug, pinned rather than endorsed (issue #26): id is optional in nearest,
-        # and without one best stays 0. Invert this test when walkto is fixed.
-        anonymous = self.tree()
-        del anonymous["id"]
-        game = SimulatedGame(movement(), targets=[anonymous], stride=1.0)
+    def anonymous_tree(self, distance=10.0):
+        """A nearest entry with no id, which the probe contract allows."""
+        tree = self.tree(distance=distance)
+        del tree["id"]
+        return tree
+
+    def walk_through(self, trees):
+        """walkto over one state per entry of ``trees``, walking forward between them."""
+        states = [{"screen": "WORLD", "player": {}, "nearest": {"tree": [tree]}} for tree in trees]
+        self.save_profile(MOVEMENT)
+        self.session.input = mock.Mock(return_value=SimulatedGame(movement()))
+        with mock.patch.object(probe, "fresh_state", side_effect=states):
+            return probe.walkto(self.session, "tree")
+
+    def test_a_target_with_no_id_is_walked_to(self):
+        game = SimulatedGame(movement(), targets=[self.anonymous_tree()], stride=1.0)
         self.play(game)
         r = probe.walkto(self.session, "tree")
+        self.assertTrue(r["ok"])
+        self.assertEqual((r["id"], r["distance"]), (None, 1.0))
+
+    def test_a_wall_is_stuck_after_four_stalls_for_a_target_with_no_id_too(self):
+        game = SimulatedGame(movement(), targets=[self.anonymous_tree()], stride=0.0)
+        self.play(game)
+        self.assertEqual(probe.walkto(self.session, "tree")["error"], "stuck: not getting closer")
+        self.assertEqual(len(game.holds), 4)
+
+    def test_a_jump_in_distance_is_a_new_target_when_there_is_no_id(self):
+        # The tree at 3.0 is gone; the next nearest is the one at 9.0.
+        r = self.walk_through([self.anonymous_tree(d) for d in (4.0, 3.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 1.0)])
+        self.assertTrue(r["ok"])
+
+    def test_a_rise_within_the_stop_distance_is_still_a_stall_with_no_id(self):
+        r = self.walk_through([self.anonymous_tree(d) for d in (5.0, 6.0, 6.0, 6.0, 6.0)])
         self.assertEqual(r["error"], "stuck: not getting closer")
-        self.assertEqual(r["distance"], 6.0)
+
+    def test_a_jump_in_distance_is_still_a_stall_for_a_target_with_an_id(self):
+        r = self.walk_through([self.tree(distance=d) for d in (5.0, 9.0, 9.0, 9.0, 9.0)])
+        self.assertEqual(r["error"], "stuck: not getting closer")
 
     def test_every_step_is_traced(self):
         game = SimulatedGame(movement(), targets=[self.tree(distance=3.0)])
