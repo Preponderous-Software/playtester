@@ -157,6 +157,27 @@ class X11InputTest(XdoCase):
                                       ["click", "5"],
                                       ["type", "--delay", "80", "--", "hi"]])
 
+    def test_keys_and_buttons_pass_their_arguments_through(self):
+        inp = inputs.X11Input(ENV, "42")
+        inp.tap("a")
+        inp.hold("b", 1.25)
+        inp.click(5, 6, 3)
+        inp.button_hold(0.75, 2)
+        self.assertEqual(self.calls, [["keydown", "a"], ["keyup", "a"],
+                                      ["keydown", "b"], ["keyup", "b"],
+                                      ["mousemove", "--window", "42", "5", "6"], ["mousedown", "3"], ["mouseup", "3"],
+                                      ["mousedown", "2"], ["mouseup", "2"]])
+        self.assertIn(1.25, self.sleeps)
+        self.assertIn(0.75, self.sleeps)
+
+    def test_a_drag_passes_its_ends_duration_and_button_through(self):
+        inputs.X11Input(ENV, "42").drag(1, 2, 31, 62, 1.0, 2)
+        self.assertEqual(self.calls[0], ["mousemove", "--window", "42", "1", "2"])
+        self.assertEqual(self.calls[1], ["mousedown", "2"])
+        self.assertEqual(self.calls[-2], ["mousemove", "--window", "42", "31", "62"])
+        self.assertEqual(len(self.pointer_moves()), 1 + 30)
+        self.assertEqual(self.calls[-1], ["mouseup", "2"])
+
     def test_wait_never_sleeps_a_negative_time(self):
         inputs.X11Input(ENV, "42").wait(-2)
         self.assertEqual(self.sleeps, [0.0])
