@@ -28,10 +28,21 @@ def run(env: Dict[str, str], *args, check: bool = False) -> str:
 
 
 def combo_parts(combo: str) -> List[str]:
-    """``Shift_L+w`` -> ``["Shift_L", "w"]``; a lone ``+`` is the plus key."""
+    """The key names of one combo, in press order; raises ValueError if a key is missing.
+
+    ``Shift_L+w`` -> ``["Shift_L", "w"]``. A lone ``+`` is the plus key, and so
+    is the last key of ``Control_L++``. Any other empty part (``Shift_L+``,
+    ``+w``, ``a++b``, an empty combo) is refused: dropping it would press
+    fewer keys than were asked for and still report success.
+    """
     if combo == "+":
         return ["plus"]
-    return [p for p in combo.split("+") if p]
+    parts = combo.split("+")
+    if combo.endswith("++"):
+        parts[-2:] = ["plus"]
+    if not all(parts):
+        raise ValueError("no key name in combo %r (combos look like Shift_L+w; spell the plus key plus)" % combo)
+    return parts
 
 
 def combo_down(env: Dict[str, str], combo: str) -> None:

@@ -7,9 +7,10 @@ import shutil
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
+from unittest import mock
 
 from tests.helpers import FIXTURE_RUN
-from playtester.harness import cli
+from playtester.harness import cli, inputs
 from playtester.harness.session import HarnessError, Session
 
 
@@ -59,6 +60,13 @@ class CliTest(unittest.TestCase):
             self.assertIn("not running", err)
             with open(os.path.join(root, "s01", "actions.jsonl")) as f:
                 self.assertEqual(json.loads(f.readline())["cmd"], "key")
+
+    def test_a_combo_with_a_key_missing_is_a_bad_argument(self):
+        game = inputs.X11Input({"DISPLAY": ":77"}, "42")
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(Session, "input", return_value=game):
+            code, _, err = run("key", "Shift_L+", env={"PT_ROOT": root, "PT_SESSION": "s01"})
+        self.assertEqual(code, 2)
+        self.assertIn("no key name in combo 'Shift_L+'", err)
 
     def test_report_and_aggregate(self):
         with tempfile.TemporaryDirectory() as tmp:

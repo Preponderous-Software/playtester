@@ -56,7 +56,7 @@ Below, `pt` stands for that whole prefix.
 | --- | --- |
 | `pt start{{START_ARGS}}` | starts the game in its own virtual display; prints the session info |
 | `pt shot NAME` | screenshot of the game's window; prints the PNG path. **Look at it** (read the image file) |
-| `pt key e` / `pt key Escape` / `pt key Shift_L+w` | tap keys (xdotool key names); several in turn: `pt key Escape Escape` |
+| `pt key e` / `pt key Escape` / `pt key Shift_L+w` | tap keys (xdotool key names; the plus key is `plus`, as in `Control_L+plus`); several in turn: `pt key Escape Escape` |
 | `pt hold w 1.5` | hold a key (or combo) for seconds |
 | `pt click X Y` | left click at window coordinates (the window is {{WIDTH}}x{{HEIGHT}}; screenshots are the same size); it hovers first |
 | `pt mousehold SECS` | hold the left mouse button where the pointer is |

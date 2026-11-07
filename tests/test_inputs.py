@@ -53,6 +53,27 @@ class ComboTest(XdoCase):
         self.assertEqual(xdo.combo_parts("Shift_L+w"), ["Shift_L", "w"])
         self.assertEqual(xdo.combo_parts("+"), ["plus"])
 
+    def test_a_plus_at_the_end_of_a_combo_is_the_plus_key(self):
+        self.assertEqual(xdo.combo_parts("Control_L++"), ["Control_L", "plus"])
+        self.assertEqual(xdo.combo_parts("Control_L+Shift_L++"), ["Control_L", "Shift_L", "plus"])
+        self.assertEqual(xdo.combo_parts("Control_L+plus"), ["Control_L", "plus"])
+
+    def test_a_combo_with_a_key_missing_is_refused(self):
+        for combo in ("", "Shift_L+", "+w", "a++b", "++", "a+++"):
+            with self.assertRaisesRegex(ValueError, "no key name in combo"):
+                xdo.combo_parts(combo)
+
+    def test_a_refused_combo_sends_nothing(self):
+        with self.assertRaises(ValueError):
+            xdo.tap(ENV, "Shift_L+")
+        self.assertEqual(self.calls, [])
+        self.assertEqual(self.sleeps, [])
+
+    def test_the_plus_key_is_pressed_and_released_with_its_modifier(self):
+        xdo.tap(ENV, "Control_L++")
+        self.assertEqual(self.calls, [["keydown", "Control_L"], ["keydown", "plus"],
+                                      ["keyup", "plus"], ["keyup", "Control_L"]])
+
     def test_keys_are_released_in_reverse_order(self):
         xdo.hold(ENV, "Control_L+Shift_L+s", 1.5)
         self.assertEqual(self.calls, [["keydown", "Control_L"], ["keydown", "Shift_L"], ["keydown", "s"],
@@ -332,6 +353,20 @@ class StrataKeysTest(StrataCase):
     def test_an_unknown_key_sends_nothing(self):
         with self.assertRaises(strata_keys.UnknownKey):
             self.stepped().tap("Shift_L+Hyper_Q")
+        self.assertEqual(self.channel.log(), [])
+
+    def test_a_plus_at_the_end_of_a_combo_reaches_the_game(self):
+        self.stepped().tap("Control_L++")
+        self.assertEqual(self.channel.log(), [("key_down", strata_keys.MOD_LCTRL, 224),
+                                              ("key_down", strata_keys.MOD_LCTRL, 46),
+                                              ("step", 2),
+                                              ("key_up", strata_keys.MOD_LCTRL, 46),
+                                              ("key_up", 0, 224),
+                                              ("step", 1)])
+
+    def test_a_combo_with_a_key_missing_sends_nothing(self):
+        with self.assertRaises(ValueError):
+            self.stepped().tap("Shift_L+")
         self.assertEqual(self.channel.log(), [])
 
 
