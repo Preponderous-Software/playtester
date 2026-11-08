@@ -56,6 +56,7 @@ class AutomationTestCase(unittest.TestCase):
         patcher = mock.patch.dict(sys.modules, automation_stubs())
         patcher.start()
         self.addCleanup(patcher.stop)
+        self.addCleanup(self.forget_stubbed_submodules)
         for name in self.MODULES:
             sys.modules.pop("playtester." + name, None)
         self.engine_mod = importlib.import_module("playtester.ai_decision_engine")
@@ -65,6 +66,12 @@ class AutomationTestCase(unittest.TestCase):
         sleep = mock.patch("time.sleep")
         self.sleep = sleep.start()
         self.addCleanup(sleep.stop)
+
+    def forget_stubbed_submodules(self):
+        """Drop the package attributes the stubbed imports set, so later tests import afresh."""
+        package = sys.modules["playtester"]
+        for name in self.MODULES:
+            package.__dict__.pop(name, None)
 
     def automator(self, actions, loop_delay=1.0):
         """A GameAutomator over a fake capture, the mocked engine and the mocked executor."""
