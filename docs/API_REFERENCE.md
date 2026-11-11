@@ -223,7 +223,7 @@ Runs a single automation cycle.
 Runs continuous automation loop.
 
 **Parameters:**
-- `max_cycles` (int, optional): Maximum cycles (None for infinite)
+- `max_cycles` (int, optional): Maximum cycles (None for no limit; 0 runs no cycles)
 - `stop_condition` (Callable, optional): Function returning True to stop
 - `region` (tuple, optional): Screen region to capture
 
@@ -273,7 +273,7 @@ OphidianAutomator(save_screenshots=False)
 Starts automated gameplay.
 
 **Parameters:**
-- `max_cycles` (int, optional): Maximum cycles
+- `max_cycles` (int, optional): Maximum cycles (None for no limit; 0 runs no cycles)
 - `region` (tuple, optional): Screen region
 
 ##### `stop()`
@@ -300,7 +300,7 @@ RoamAutomator(save_screenshots=False)
 Starts automated gameplay.
 
 **Parameters:**
-- `max_cycles` (int, optional): Maximum cycles
+- `max_cycles` (int, optional): Maximum cycles (None for no limit; 0 runs no cycles)
 - `region` (tuple, optional): Screen region
 
 ##### `stop()`

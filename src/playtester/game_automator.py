@@ -98,7 +98,8 @@ class GameAutomator:
         Run continuous automation loop.
         
         Args:
-            max_cycles: Maximum number of cycles to run (None for infinite)
+            max_cycles: Maximum number of cycles to run (None for no limit;
+                0 runs no cycles)
             stop_condition: Optional function that returns True to stop
             region: Optional region to capture
         
@@ -109,7 +110,7 @@ class GameAutomator:
         cycle = 0
         
         while self.is_running:
-            if max_cycles and cycle >= max_cycles:
+            if max_cycles is not None and cycle >= max_cycles:
                 break
             
             if stop_condition and stop_condition():

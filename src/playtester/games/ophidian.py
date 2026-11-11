@@ -160,7 +160,8 @@ class OphidianAutomator:
         Start automated play.
         
         Args:
-            max_cycles: Maximum number of decision cycles (None for infinite)
+            max_cycles: Maximum number of decision cycles (None for no limit;
+                0 runs no cycles)
             region: Optional screen region (x, y, width, height) where game is displayed
         """
         print(f"Starting Ophidian automation (max_cycles={max_cycles})...")

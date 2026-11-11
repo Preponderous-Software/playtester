@@ -166,12 +166,15 @@ class GameAutomatorTest(AutomationTestCase):
         infos = list(automator.run_continuous(stop_condition=lambda: automator.cycle_count >= 2))
         self.assertEqual(len(infos), 2)
 
-    def test_continuous_max_cycles_zero_does_not_stop_the_loop(self):
-        # Current behaviour: max_cycles=0 is falsy, so it is treated like None (no limit).
+    def test_continuous_max_cycles_zero_runs_no_cycles(self):
+        # 0 is a limit of zero cycles, not "no limit" (only None means that).
         automator = self.automator([self.GameAction.WAIT])
         infos = list(automator.run_continuous(max_cycles=0,
                                               stop_condition=lambda: automator.cycle_count >= 4))
-        self.assertEqual(len(infos), 4)
+        self.assertEqual(infos, [])
+        self.assertEqual(automator.cycle_count, 0)
+        self.assertEqual(automator.executor.get_execution_history(), [])
+        self.assertEqual(automator.capture.calls, [])
 
     def test_stop_ends_a_running_loop_after_the_current_cycle(self):
         automator = self.automator([self.GameAction.WAIT])
