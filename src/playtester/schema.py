@@ -9,7 +9,7 @@ keywords those schemas use:
 ``type``, ``enum``, ``const``, ``required``, ``properties``,
 ``additionalProperties`` (true, false or a schema), ``items``, ``minItems``,
 ``minimum``, ``maximum``, ``minLength``, ``maxLength``, ``pattern``,
-``allOf``, ``anyOf``, ``if``/``then`` and local ``$ref`` (``#/$defs/name``).
+``allOf``, ``anyOf``, ``if``/``then``/``else`` and local ``$ref`` (``#/$defs/name``).
 
 Unknown keywords are ignored, as JSON Schema itself does. ``validate`` returns
 a list of ``"path: problem"`` strings, empty when the value is valid.
