@@ -40,8 +40,19 @@ def state_path(session: Session) -> str:
     return os.path.join(session.probe_dir, "state.json")
 
 
+def _sync_log(session: Session) -> None:
+    """A Windows-driver session's probe comes from the game's log: read what it gained (windows_log)."""
+    if session.info().get("driver") == "windows":
+        from .windows_log import sync
+        try:
+            sync(session)
+        except OSError:
+            pass
+
+
 def read_state(session: Session) -> Optional[Dict[str, Any]]:
     """The game's state.json, or None; a world state's position goes to the track."""
+    _sync_log(session)
     st = read_json(state_path(session))
     if isinstance(st, dict):
         record_position(session, st)
@@ -126,6 +137,7 @@ def fresh_state(session: Session, after_ms: int, timeout: float = 4.0, inp: _Any
 
 
 def read_events(session: Session) -> List[Dict[str, Any]]:
+    _sync_log(session)
     rows = []
     try:
         with open(os.path.join(session.probe_dir, "events.jsonl"), encoding="utf-8") as f:

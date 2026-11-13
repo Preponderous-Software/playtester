@@ -1,6 +1,6 @@
 """A scripted session that proves the harness end to end on this machine.
 
-    pt smoke [--profile P] [--game-dir D] [--session NAME] [--clock free|stepped [--step SECS]] [--keep]
+    pt smoke [--profile P] [--game-dir D] [--session NAME] [--clock free|stepped [--step SECS]] [--keep] [--attach]
 
 Runs the profile's ``smoke`` script through the same commands an agent uses:
 starts the game with the script's seed and arguments, runs its steps, then
@@ -17,6 +17,10 @@ the command that stops it. The session directory's files are always kept.
 ``--clock stepped`` (Strata-driver profiles) runs the script on a stepped
 clock: every hold and wait is a fixed number of frames, so two runs of the
 same build and seed play the same frames.
+
+``--attach`` (Windows-driver profiles) runs the script against a copy of the
+game that is already running instead of launching one; stopping the session
+then leaves that copy running.
 """
 
 import os
@@ -34,11 +38,15 @@ def main(args: List[str]) -> int:
     opts = {"--profile": os.environ.get("PT_PROFILE"), "--game-dir": os.environ.get("PT_GAME_DIR") or os.getcwd(),
             "--session": "smoke-%d" % os.getpid(), "--clock": None, "--step": None}
     keep = False
+    attach = False
     rest = list(args)
     while rest:
         key = rest.pop(0)
         if key == "--keep":
             keep = True
+            continue
+        if key == "--attach":
+            attach = True
             continue
         if key not in opts or not rest:
             print(__doc__.strip())
@@ -69,6 +77,8 @@ def main(args: List[str]) -> int:
         for flag in ("--clock", "--step"):
             if opts[flag]:
                 start += [flag, opts[flag]]
+        if attach:
+            start.append("--attach")
         if script.get("seed") is not None:
             start += ["--seed", str(script["seed"])]
         if run(start + list(script.get("args", []))) != 0:

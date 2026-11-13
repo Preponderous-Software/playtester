@@ -7,6 +7,9 @@ closed-loop probe commands (``face``, ``walkto``) work the same on both:
                  and ImageMagick (the default driver, ``"driver": "x11"``)
 ``StrataInput``  a Strata game's drive channel (``"driver": "strata"``):
                  injected events, a free or stepped clock, engine screenshots
+``WindowsInput`` the real Windows desktop (``"driver": "windows"``), through
+                 the session's PowerShell helper: scancode keys, the real
+                 pointer, screen captures of the game's window
 
 ``wait(seconds)`` is how a command lets game time pass. With the X11 driver
 and the Strata driver's free clock it sleeps. With a stepped clock it steps
@@ -19,7 +22,7 @@ import subprocess
 import time
 from typing import Any, Dict, List, Optional
 
-from . import strata_keys, xdo
+from . import strata_keys, windows_keys, xdo
 
 
 class InputError(RuntimeError):
@@ -226,4 +229,138 @@ class StrataInput:
         reply = self.channel.request("shot", path=os.path.abspath(path))
         if not os.path.isfile(path):
             raise InputError("screenshot failed: %s" % reply)
+        return path
+
+
+class WindowsInput:
+    """Input to a game on the real Windows desktop, through the session's helper (``windows_driver``).
+
+    Before anything else it brings the game's window to the front (restoring
+    it when minimised) and refuses to send input if Windows would not, so
+    keys never land in another window. Coordinates are screenshot pixels:
+    ``shot_size`` is the size shots are saved at, and points are scaled to the
+    window's real client area (``windows_driver.scale_point``).
+    """
+
+    stepped = False
+
+    def __init__(self, channel: Any, hwnd: int, shot_size: Any, to_windows_path: Any = None):
+        self.channel = channel
+        self.hwnd = int(hwnd)
+        self.shot_size = (int(shot_size[0]), int(shot_size[1]))
+        self.to_windows_path = to_windows_path
+        self._client = None  # type: Optional[List[int]]
+
+    def focus(self) -> List[int]:
+        """Brings the window to the front; returns its client area ``[left, top, width, height]``."""
+        reply = self.channel.request("focus", hwnd=self.hwnd, timeout=15.0)
+        if not reply.get("foreground"):
+            raise InputError("Windows would not bring the game's window to the front, so no input was sent "
+                             "(is another window holding the foreground, or a UAC prompt open?)")
+        self._client = list(reply["window"]["client"])
+        return self._client
+
+    @property
+    def client(self) -> List[int]:
+        return self._client if self._client is not None else self.focus()
+
+    def ready(self) -> None:
+        """Brings the window to the front, once per command (every input path starts here)."""
+        self.client
+
+    def point(self, x: float, y: float) -> Any:
+        from .windows_driver import scale_point
+        return scale_point(x, y, self.client, self.shot_size)
+
+    def _keys(self, combo: str, up: bool) -> None:
+        keys = windows_keys.combo_scancodes(xdo.combo_parts(combo))
+        self.channel.request("key", keys=keys, up=up)
+
+    def tap(self, combo: str) -> None:
+        windows_keys.combo_scancodes(xdo.combo_parts(combo))  # an unknown key fails before anything is pressed
+        self.ready()
+        self._keys(combo, False)
+        time.sleep(xdo.TAP_HOLD)
+        self._keys(combo, True)
+        time.sleep(xdo.TAP_GAP)
+
+    def hold(self, combo: str, seconds: float) -> None:
+        windows_keys.combo_scancodes(xdo.combo_parts(combo))
+        self.ready()
+        self._keys(combo, False)
+        try:
+            time.sleep(max(0.0, seconds))
+        finally:
+            self._keys(combo, True)
+
+    def move(self, x: int, y: int) -> None:
+        px, py = self.point(x, y)
+        self.channel.request("move", x=px, y=py)
+
+    def _button(self, button: int, up: bool) -> None:
+        self.channel.request("button", button=int(button), up=up)
+
+    def click(self, x: int, y: int, button: int = 1) -> None:
+        self.move(x, y)
+        time.sleep(xdo.HOVER_BEFORE_CLICK)
+        self._button(button, False)
+        time.sleep(xdo.CLICK_HOLD)
+        self._button(button, True)
+        time.sleep(0.2)
+
+    def button_hold(self, seconds: float, button: int = 1) -> None:
+        self.ready()
+        self._button(button, False)
+        try:
+            time.sleep(max(0.0, seconds))
+        finally:
+            self._button(button, True)
+
+    def look(self, dx: int, dy: int, step: int = 120) -> None:
+        """Relative pointer motion in steps (games in mouse-look read the deltas)."""
+        self.ready()
+        dx, dy = int(dx), int(dy)
+        steps = max(1, (max(abs(dx), abs(dy)) + step - 1) // step)
+        sent_x = sent_y = 0
+        for i in range(1, steps + 1):
+            tx, ty = dx * i // steps, dy * i // steps
+            self.channel.request("rel", dx=tx - sent_x, dy=ty - sent_y)
+            sent_x, sent_y = tx, ty
+            time.sleep(0.02)
+
+    def drag(self, x1: int, y1: int, x2: int, y2: int, seconds: float, button: int = 3) -> None:
+        self.move(x1, y1)
+        time.sleep(xdo.HOVER_BEFORE_CLICK)
+        self._button(button, False)
+        try:
+            steps = max(10, int(seconds * 30))
+            for i in range(1, steps + 1):
+                self.move(x1 + (x2 - x1) * i // steps, y1 + (y2 - y1) * i // steps)
+                time.sleep(seconds / steps)
+            time.sleep(0.1)
+        finally:
+            self._button(button, True)
+
+    def scroll(self, clicks: int) -> None:
+        """Mouse wheel: + scrolls down (a negative wheel delta), - up; one notch (120) at a time."""
+        self.ready()
+        for _ in range(abs(int(clicks))):
+            self.channel.request("wheel", amount=-120 if clicks > 0 else 120)
+            time.sleep(0.08)
+
+    def type_text(self, text: str) -> None:
+        self.ready()
+        self.channel.request("text", text=text, timeout=max(30.0, len(text) * 0.2))
+
+    def wait(self, seconds: float) -> None:
+        time.sleep(max(0.0, seconds))
+
+    def screenshot(self, path: str) -> str:
+        """The window's client area as PNG at ``path``, scaled to the session's shot size."""
+        rect = self.client
+        target = self.to_windows_path(path) if self.to_windows_path else path
+        self.channel.request("shot", rect=rect, width=self.shot_size[0], height=self.shot_size[1], path=target,
+                             timeout=30.0)
+        if not os.path.isfile(path):
+            raise InputError("screenshot failed: the helper wrote no file at %s" % target)
         return path

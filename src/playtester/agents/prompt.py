@@ -42,6 +42,15 @@ NO_PROBE_NOTES = """This game has no probe: everything you know comes from scree
 often, and say in a finding when the screen does not tell a player
 something they need."""
 
+WINDOWS_NOTES = """This game runs on the real Windows desktop, not in a virtual display: your
+keys and clicks are real input on the owner's screen. Click only inside the
+game, never press Alt+Tab, Alt+F4 or the Windows key, and run `pt stop`
+when you finish. The game's log is its probe: `pt events` shows the lines a
+test build printed for playtests and every `log_error` line (report each
+one), and `pt state` what they reported, if anything; otherwise
+screenshots are all you have. Look often, and say in a finding when the
+screen does not tell a player something they need."""
+
 
 QUESTIONS = """## Questions to answer at the end
 
@@ -120,6 +129,9 @@ def fill(profile: Dict[str, Any], goal: str, session: str, run_dir: str, seed: O
         tick_hint = ""
         version_source = "the version the game shows, or session.json version, or null"
         status_extra = ""
+    windows = profile.get("driver") == "windows"
+    if windows:
+        notes = WINDOWS_NOTES
     cheats = profile.get("cheats") or "Use only what a player would: no debug keys or developer switches unless your goal says so."
     try:
         seed_json = json.dumps(int(seed)) if seed not in (None, "") else "null"
@@ -135,6 +147,9 @@ def fill(profile: Dict[str, Any], goal: str, session: str, run_dir: str, seed: O
         "SEED_JSON": seed_json,
         "TIME_BUDGET_MIN": "%g" % float(budget_min),
         "GAME_DIR": game_dir,
+        "WHERE": "on this machine's Windows desktop" if windows else "headless on this machine",
+        "START_WHAT": ("starts the game on the Windows desktop (or attaches to it); prints the session info"
+                       if windows else "starts the game in its own virtual display; prints the session info"),
         "PT": prefix,
         "START_ARGS": start,
         "WIDTH": str(profile["window"]["width"]),
