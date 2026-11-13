@@ -41,6 +41,9 @@ the right your stock. `Return` (the button) closes it.
 **Text fields.** `pt type` does not reach Warband's name fields (a new
 character's name, a renamed party or troop); use `pt type --keys "Name"`,
 which presses the keys (capitals with Shift); `pt type` is fine elsewhere.
+On the character screen, click the name field twice (the first click after
+the saving-policy question does not focus it), and spend every attribute,
+skill and weapon point first: Done stays grey until they are all spent.
 
 **Battles and scenes.** `w a s d` move (`a`/`d` strafe; they do not turn),
 and the mouse turns you: `pt look DX DY` (+ right / + down, in pixels;
