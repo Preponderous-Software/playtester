@@ -477,5 +477,29 @@ class FakeDesktopSessionTest(unittest.TestCase):
         self.assertIn("windows", r.stderr)
 
 
+class WindowsPathTest(unittest.TestCase):
+    """windows_path on a file that does not exist yet (a screenshot about to be taken)."""
+
+    def test_missing_file_converts_through_its_existing_folder(self):
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            # like the real wslpath -w: fails when the path does not exist
+            calls.append(cmd[-1])
+            ok = os.path.exists(cmd[-1])
+            out = "\\\\wsl$\\Distro" + cmd[-1].replace("/", "\\") + "\n" if ok else ""
+            return subprocess.CompletedProcess(cmd, 0 if ok else 1, stdout=out)
+
+        with tempfile.TemporaryDirectory() as d:
+            real = windows_driver.subprocess.run
+            windows_driver.subprocess.run = fake_run
+            try:
+                got = windows_driver.windows_path(os.path.join(d, "shots", "01-menu.png"))
+            finally:
+                windows_driver.subprocess.run = real
+        self.assertEqual(got, "\\\\wsl$\\Distro" + d.replace("/", "\\") + "\\shots\\01-menu.png")
+        self.assertEqual(calls, [d])
+
+
 if __name__ == "__main__":
     unittest.main()

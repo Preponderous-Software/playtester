@@ -189,14 +189,21 @@ def mnt_to_windows(path: str) -> Optional[str]:
 
 def windows_path(path: str) -> str:
     """A WSL path as Windows sees it (``wslpath -w``; /mnt/<drive> paths are converted directly)."""
-    direct = mnt_to_windows(os.path.abspath(path))
+    path = os.path.abspath(path)
+    direct = mnt_to_windows(path)
     if direct is not None:
         return direct
+    # wslpath -w fails on a path that does not exist yet (a screenshot about to be
+    # taken), so convert the nearest existing folder and append the rest
+    base, rest = path, []  # type: str, List[str]
+    while not os.path.exists(base) and os.path.dirname(base) != base:
+        base, name = os.path.split(base)
+        rest.insert(0, name)
     try:
-        r = subprocess.run(["wslpath", "-w", os.path.abspath(path)], stdout=subprocess.PIPE,
+        r = subprocess.run(["wslpath", "-w", base], stdout=subprocess.PIPE,
                            stderr=subprocess.DEVNULL, universal_newlines=True, timeout=10)
         if r.returncode == 0 and r.stdout.strip():
-            return r.stdout.strip()
+            return "\\".join([r.stdout.strip().rstrip("\\")] + rest)
     except (OSError, subprocess.SubprocessError):
         pass
     return path
