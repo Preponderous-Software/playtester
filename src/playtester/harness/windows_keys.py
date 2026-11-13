@@ -9,9 +9,15 @@ Control and Alt, keypad Enter and Divide) carry ``KEYEVENTF_EXTENDEDKEY``.
 
 A name that is not here is an error, never a silent no-op. Letters are
 case-insensitive (``W`` is the W key, without Shift).
+
+``pt type --keys`` types text as key presses (``text_strokes``): ASCII
+letters, digits, space and the punctuation of a US keyboard, with Shift for
+capitals and shifted symbols. Text fields that ignore ``KEYEVENTF_UNICODE``
+events (Warband's name fields) see real keys; the characters a US keyboard
+cannot type stay unicode events.
 """
 
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 # name -> (scancode, extended)
 SCANCODES = {}  # type: Dict[str, Tuple[int, bool]]
@@ -71,3 +77,47 @@ def scancode(name: str) -> Tuple[int, bool]:
 def combo_scancodes(parts: List[str]) -> List[List[object]]:
     """``[[scancode, extended], ...]`` for the keys of one combo, in press order (JSON-ready)."""
     return [list(scancode(p)) for p in parts]
+
+
+# Characters typed with Shift on a US keyboard, and the key that types them.
+SHIFTED = {
+    "!": "1", "@": "2", "#": "3", "$": "4", "%": "5", "^": "6", "&": "7", "*": "8", "(": "9", ")": "0",
+    "_": "minus", "+": "equal", "{": "bracketleft", "}": "bracketright", ":": "semicolon", '"': "apostrophe",
+    "~": "grave", "|": "backslash", "<": "comma", ">": "period", "?": "slash",
+}
+# Characters typed without Shift that are not their own key name.
+UNSHIFTED = {
+    " ": "space", "-": "minus", "=": "equal", "[": "bracketleft", "]": "bracketright", ";": "semicolon",
+    "'": "apostrophe", "`": "grave", "\\": "backslash", ",": "comma", ".": "period", "/": "slash",
+}
+
+
+def char_keys(ch: str) -> Optional[List[str]]:
+    """The key names that type ``ch`` on a US keyboard (``["Shift_L", "t"]`` for ``T``), or None."""
+    if len(ch) != 1 or ord(ch) > 127:
+        return None
+    if ch.isalpha():
+        return ["Shift_L", ch.lower()] if ch.isupper() else [ch]
+    if ch.isdigit():
+        return [ch]
+    if ch in UNSHIFTED:
+        return [UNSHIFTED[ch]]
+    if ch in SHIFTED:
+        return ["Shift_L", SHIFTED[ch]]
+    return None
+
+
+def text_strokes(text: str) -> List[Tuple[str, Union[str, List[List[List[object]]]]]]:
+    """``text`` as runs to send: ``("keys", [combo, ...])`` for characters a US keyboard types (each
+    combo JSON-ready, as ``combo_scancodes``) and ``("text", "...")`` for the rest (unicode events)."""
+    runs = []  # type: List[Tuple[str, Union[str, List[List[List[object]]]]]]
+    for ch in text:
+        names = char_keys(ch)
+        kind = "keys" if names is not None else "text"
+        if not runs or runs[-1][0] != kind:
+            runs.append((kind, [] if kind == "keys" else ""))
+        if kind == "keys":
+            runs[-1][1].append(combo_scancodes(names))  # type: ignore
+        else:
+            runs[-1] = ("text", runs[-1][1] + ch)  # type: ignore
+    return runs

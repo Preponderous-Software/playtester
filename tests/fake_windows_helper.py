@@ -7,7 +7,8 @@ the marker, and then answers the helper's ops against a pretend desktop with
 one game process. What it was asked to do is appended, one JSON line an op,
 to ``$FAKE_WIN_LOG``. ``$FAKE_WIN_RUNNING`` (a pid) pretends the game is
 already running; ``$FAKE_WIN_REGISTRY`` (JSON ``{"KEY\\\\name": value}``) seeds
-the registry. Screenshots are solid PNGs of the requested size.
+the registry. Screenshots are solid PNGs of the requested size. ``look`` and ``strokes``
+check the same bounds as the real helper.
 """
 
 import json
@@ -69,8 +70,27 @@ def main():
             refused = "only the profile's game may be launched"
         elif op in ("close", "kill") and not (game and game.get("launched") and game["pid"] == req["pid"]):
             refused = "only a game pt launched may be closed"
+        bad = None
+        if op == "look":
+            moves = req.get("moves") or []
+            if not 1 <= len(moves) <= 1000:
+                bad = "look takes 1 to 1000 moves"
+            elif any(abs(int(m[0])) > 10000 or abs(int(m[1])) > 10000 for m in moves):
+                bad = "a look move is at most 10000 pixels"
+            else:
+                reply["moves"] = len(moves)
+        elif op == "strokes":
+            strokes = req.get("strokes") or []
+            if not 1 <= len(strokes) <= 500:
+                bad = "strokes takes 1 to 500 keys"
+            elif any(not 1 <= len(s) <= 4 for s in strokes):
+                bad = "a stroke is 1 to 4 keys"
+            else:
+                reply["strokes"] = len(strokes)
         if refused:
             reply = {"ok": False, "op": op, "error": "refused: " + refused}
+        elif bad:
+            reply = {"ok": False, "op": op, "error": bad}
         elif op == "policy":
             if policy is not None:
                 reply = {"ok": False, "op": op, "error": "refused: the policy is already set"}

@@ -51,8 +51,8 @@ class X11Input:
     def move(self, x: int, y: int) -> None:
         xdo.move(self.env, self.window, x, y)
 
-    def look(self, dx: int, dy: int) -> None:
-        xdo.move_relative(self.env, dx, dy)
+    def look(self, dx: int, dy: int, steps: Optional[int] = None) -> None:
+        xdo.move_relative(self.env, dx, dy, steps=steps)
 
     def drag(self, x1: int, y1: int, x2: int, y2: int, seconds: float, button: int = 3) -> None:
         xdo.drag(self.env, self.window, x1, y1, x2, y2, seconds, button)
@@ -61,6 +61,10 @@ class X11Input:
         xdo.scroll(self.env, clicks)
 
     def type_text(self, text: str) -> None:
+        xdo.type_text(self.env, text)
+
+    def type_keys(self, text: str) -> None:
+        """``pt type --keys``: xdotool already types with key events, so the same as ``type_text``."""
         xdo.type_text(self.env, text)
 
     def wait(self, seconds: float) -> None:
@@ -192,9 +196,11 @@ class StrataInput:
         self.event("mouse_button_up", button=button, x=x, y=y)
         self.settle()
 
-    def look(self, dx: int, dy: int) -> None:
-        # One exact relative motion: a driven engine has no window edge to clamp at.
-        self.event("mouse_motion", dx=dx, dy=dy)
+    def look(self, dx: int, dy: int, steps: Optional[int] = None) -> None:
+        # One exact relative motion (a driven engine has no window edge to clamp at),
+        # or ``steps`` motion events that add up to it, applied in the same frame.
+        for ddx, ddy in xdo.look_deltas(dx, dy, steps or 1):
+            self.event("mouse_motion", dx=ddx, dy=ddy)
         self.settle()
 
     def drag(self, x1: int, y1: int, x2: int, y2: int, seconds: float, button: int = 3) -> None:
@@ -224,6 +230,10 @@ class StrataInput:
         for chunk in utf8_chunks(text):
             self.event("text_input", text=chunk)
         self.settle()
+
+    def type_keys(self, text: str) -> None:
+        """``pt type --keys``: a Strata text field reads text events, so the same as ``type_text``."""
+        self.type_text(text)
 
     def screenshot(self, path: str) -> str:
         reply = self.channel.request("shot", path=os.path.abspath(path))
@@ -316,17 +326,22 @@ class WindowsInput:
         finally:
             self._button(button, True)
 
-    def look(self, dx: int, dy: int, step: int = 120) -> None:
-        """Relative pointer motion in steps (games in mouse-look read the deltas)."""
+    # pt look: the default largest step (pixels on either axis) and the pause between steps (ms).
+    # Small steps a few milliseconds apart reach games that read raw input as smooth motion.
+    LOOK_STEP = 20
+    LOOK_PAUSE_MS = 10
+
+    def look(self, dx: int, dy: int, steps: Optional[int] = None) -> None:
+        """Relative pointer motion (``MOUSEEVENTF_MOVE`` without ``MOUSEEVENTF_ABSOLUTE``): what a game in
+        mouse look turns by. Split into ``steps`` motions (default: none over LOOK_STEP pixels), sent by
+        the helper in one request, LOOK_PAUSE_MS apart."""
+        try:
+            moves = xdo.look_deltas(dx, dy, steps, self.LOOK_STEP)
+        except ValueError as e:
+            raise InputError(str(e))
         self.ready()
-        dx, dy = int(dx), int(dy)
-        steps = max(1, (max(abs(dx), abs(dy)) + step - 1) // step)
-        sent_x = sent_y = 0
-        for i in range(1, steps + 1):
-            tx, ty = dx * i // steps, dy * i // steps
-            self.channel.request("rel", dx=tx - sent_x, dy=ty - sent_y)
-            sent_x, sent_y = tx, ty
-            time.sleep(0.02)
+        self.channel.request("look", moves=[list(m) for m in moves], pause=self.LOOK_PAUSE_MS,
+                             timeout=15.0 + len(moves) * self.LOOK_PAUSE_MS * 2 / 1000.0)
 
     def drag(self, x1: int, y1: int, x2: int, y2: int, seconds: float, button: int = 3) -> None:
         self.move(x1, y1)
@@ -351,6 +366,27 @@ class WindowsInput:
     def type_text(self, text: str) -> None:
         self.ready()
         self.channel.request("text", text=text, timeout=max(30.0, len(text) * 0.2))
+
+    # pt type --keys: how long each key is held and the gap after it (ms); requests of at most
+    # KEYS_PER_REQUEST strokes.
+    KEY_HOLD_MS = 30
+    KEY_GAP_MS = 50
+    KEYS_PER_REQUEST = 100
+
+    def type_keys(self, text: str) -> None:
+        """Types ``text`` as scancode key presses (``windows_keys.text_strokes``), Shift held for capitals
+        and shifted symbols, for text fields that ignore unicode events; characters a US keyboard cannot
+        type go as unicode events, in order."""
+        runs = windows_keys.text_strokes(text)
+        self.ready()
+        for kind, run in runs:
+            if kind == "text":
+                self.channel.request("text", text=run, timeout=max(30.0, len(run) * 0.2))
+                continue
+            for i in range(0, len(run), self.KEYS_PER_REQUEST):
+                chunk = run[i:i + self.KEYS_PER_REQUEST]
+                self.channel.request("strokes", strokes=chunk, hold=self.KEY_HOLD_MS, gap=self.KEY_GAP_MS,
+                                     timeout=15.0 + len(chunk) * (self.KEY_HOLD_MS + self.KEY_GAP_MS + 50) / 1000.0)
 
     def wait(self, seconds: float) -> None:
         time.sleep(max(0.0, seconds))
