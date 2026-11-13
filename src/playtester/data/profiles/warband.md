@@ -38,7 +38,13 @@ It is not a drag. Hover an item for its stats. The left pane is the other
 side (Discard, a merchant, a chest), the middle your character's equipment,
 the right your stock. `Return` (the button) closes it.
 
-**Battles and scenes.** `w a s d` move, the mouse looks (`pt look DX DY`),
+**Text fields.** `pt type` does not reach Warband's name fields (a new
+character's name, a renamed party or troop); use `pt type --keys "Name"`,
+which presses the keys (capitals with Shift); `pt type` is fine elsewhere.
+
+**Battles and scenes.** `w a s d` move (`a`/`d` strafe; they do not turn),
+and the mouse turns you: `pt look DX DY` (+ right / + down, in pixels;
+`pt look 400 0` turns right; `pt move` does not turn the view at all),
 left button attacks (`pt mousehold 0.6 1` for a full swing), right button
 blocks, `f` mounts or uses, `Tab` leaves a scene or battle when allowed,
 `Backspace` shows orders. Holds: `pt hold w 2`.

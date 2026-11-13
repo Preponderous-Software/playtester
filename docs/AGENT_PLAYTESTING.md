@@ -91,7 +91,8 @@ scripted session. It runs in a session of its own (`smoke-<pid>`, or
 | `status` | running?, display, CPU, memory, fps, ticks a second (Strata driver: frame and clock) |
 | `key K...`, `hold K SECS` | xdotool key names; combos as `Shift_L+w`. The plus key is `plus` (`Control_L+plus`), and `+` alone or at the end of a combo (`Control_L++`) means the same; any other combo with a key missing is refused |
 | `click X Y [BTN]`, `move X Y`, `drag X1 Y1 X2 Y2 SECS [BTN]`, `mousehold SECS [BTN]`, `scroll N`, `type TEXT` | window coordinates; a click hovers 0.3 s first |
-| `look DX DY` | relative pointer motion, for mouse-look games |
+| `look DX DY [--steps N]` | relative pointer motion, for mouse-look games, split into N motions (default: none over 120 pixels, 20 with the Windows driver) |
+| `type --keys TEXT` | Windows driver: types TEXT as scancode key presses (Shift for capitals) for text fields that ignore `type`'s unicode events; other drivers type as `type` does |
 | `shot NAME` | the game's window to `shots/NAME.png`; prints the path |
 | `note [--shot NAME] TEXT` | append to `findings.jsonl` |
 | `state [--full]`, `events [N]`, `await SCREEN [SECS]` | read the probe |

@@ -175,10 +175,21 @@ time while the agent thinks. Games read the clock through Strata's
   `SendInput` and `KEYEVENTF_SCANCODE` (games reading DirectInput ignore
   virtual-key events; names as for the other drivers, unknown names are
   errors), the pointer is the real one (`SetCursorPos` and `SendInput`
-  buttons, wheel and relative motion), and `shot` copies the window's area
+  buttons and wheel), and `shot` copies the window's area
   from the screen (`PrintWindow` gives black frames for Direct3D games) and
   scales it to `window.width` x `window.height`; clicks are scaled back.
   `desktop.jsonl` records every line sent to the helper.
+
+  `pt move X Y` places the pointer at an absolute position, which a game in
+  mouse look ignores; `pt look DX DY [--steps N]` turns the view: one helper
+  request of relative `SendInput` motions (`MOUSEEVENTF_MOVE` without
+  `MOUSEEVENTF_ABSOLUTE`), none over 20 pixels by default and 10 ms apart, so
+  a game reading raw input sees smooth motion. `pt type TEXT` sends unicode
+  characters (`KEYEVENTF_UNICODE`), which some text fields ignore (Warband's
+  name fields); `pt type --keys TEXT` presses scancodes instead: letters,
+  digits, space and US-keyboard punctuation, Shift held for capitals and
+  shifted symbols (with Caps Lock off), each key held 30 ms with 50 ms
+  between keys. Characters a US keyboard cannot type still go as unicode.
 
   The probe of a Windows game comes from its log (`windows.log`) and, for
   games that cannot write files while they run, from the screen. Every `pt`

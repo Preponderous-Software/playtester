@@ -61,10 +61,10 @@ Below, `pt` stands for that whole prefix.
 | `pt click X Y` | left click at window coordinates (the window is {{WIDTH}}x{{HEIGHT}}; screenshots are the same size); it hovers first |
 | `pt mousehold SECS` | hold the left mouse button where the pointer is |
 | `pt move X Y` | move the pointer (hover) without clicking |
-| `pt look DX DY` | relative mouse motion, for mouse-look games (pixels; + right / + down) |
+| `pt look DX DY` | relative mouse motion, for mouse-look games (pixels; + right / + down); `--steps N` splits it into N smaller motions |
 | `pt drag X1 Y1 X2 Y2 SECS [BUTTON]` | drag with a button held (default the right button) |
 | `pt scroll N` | mouse wheel, + down / - up |
-| `pt type TEXT` | type into a focused text box |
+| `pt type TEXT` | type into a focused text box (`pt type --keys TEXT` presses the keys instead, for a field that ignores `pt type`) |
 {{PROBE_COMMANDS}}| `pt wait 5` | let time pass |
 | `pt note --shot NAME "what you saw"` | log a finding with a screenshot (findings.jsonl) |
 | `pt status` | is the game running; CPU, memory{{STATUS_EXTRA}} |
