@@ -133,6 +133,24 @@ class PointerTest(XdoCase):
         xdo.move_relative(ENV, 0, 0)
         self.assertEqual(self.relative_deltas(), [(0, 0)])
 
+    def test_a_step_count_splits_the_motion_evenly(self):
+        xdo.move_relative(ENV, 100, -10, steps=4)
+        self.assertEqual(self.relative_deltas(), [(25, -2), (25, -3), (25, -2), (25, -3)])
+        self.assertEqual(len(self.sleeps), 4)
+
+    def test_look_deltas_mirror_and_add_up(self):
+        self.assertEqual(xdo.look_deltas(-100, 10, 4), [(-25, 2), (-25, 3), (-25, 2), (-25, 3)])
+        deltas = xdo.look_deltas(631, -7, step=20)
+        self.assertEqual(len(deltas), 32)
+        self.assertEqual((sum(d[0] for d in deltas), sum(d[1] for d in deltas)), (631, -7))
+        self.assertTrue(all(abs(d[0]) <= 20 for d in deltas))
+
+    def test_look_deltas_refuse_too_few_or_too_many_steps(self):
+        for steps in (0, -1, xdo.MAX_LOOK_STEPS + 1):
+            with self.assertRaises(ValueError):
+                xdo.look_deltas(10, 10, steps)
+        self.assertEqual(len(xdo.look_deltas(10, 0, xdo.MAX_LOOK_STEPS)), xdo.MAX_LOOK_STEPS)
+
     def test_a_drag_presses_at_the_start_and_releases_at_the_end(self):
         xdo.drag(ENV, "9", 0, 100, 30, 40, 1.0, button=2)
         kinds = [c[0] for c in self.calls]
@@ -177,6 +195,13 @@ class X11InputTest(XdoCase):
                                       ["mousemove_relative", "--", "3", "4"],
                                       ["click", "5"],
                                       ["type", "--delay", "80", "--", "hi"]])
+
+    def test_look_steps_and_typing_with_keys(self):
+        inp = inputs.X11Input(ENV, "42")
+        inp.look(9, 0, steps=3)
+        inp.type_keys("Hi")  # xdotool type already presses keys
+        self.assertEqual(self.calls, [["mousemove_relative", "--", "3", "0"]] * 3
+                         + [["type", "--delay", "80", "--", "Hi"]])
 
     def test_keys_and_buttons_pass_their_arguments_through(self):
         inp = inputs.X11Input(ENV, "42")
@@ -420,6 +445,10 @@ class StrataPointerTest(StrataCase):
         self.assertEqual(self.channel.log(), [("mouse_motion", -500, 12), ("step", 1)])
         self.assertFalse(os.path.exists(self.pointer))  # looking does not move the pointer
 
+    def test_look_in_steps_is_several_motions_in_one_frame(self):
+        self.stepped().look(-9, 3, steps=3)
+        self.assertEqual(self.channel.log(), [("mouse_motion", -3, 1)] * 3 + [("step", 1)])
+
     def test_a_stepped_drag_moves_one_step_a_frame_and_ends_exactly(self):
         self.stepped().drag(0, 0, 10, -5, 0.1, button=2)
         log = self.channel.log()
@@ -470,3 +499,62 @@ class StrataScreenshotTest(StrataCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WindowsChannel(FakeChannel):
+    """The helper's replies a WindowsInput needs: ``focus`` brings the window to the front."""
+
+    def request(self, op, **fields):
+        reply = super().request(op, **fields)
+        if op == "focus":
+            reply.update(foreground=True, window={"client": [0, 0, 1920, 1080]})
+        return reply
+
+
+class WindowsInputTest(unittest.TestCase):
+    def setUp(self):
+        self.channel = WindowsChannel()
+        patcher = mock.patch.object(inputs.time, "sleep")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.inp = inputs.WindowsInput(self.channel, 77, (1280, 720))
+
+    def sent(self, op):
+        return [f for o, f in self.channel.requests if o == op]
+
+    def test_look_is_one_request_of_small_relative_moves(self):
+        self.inp.look(630, -45)
+        self.assertEqual([o for o, _ in self.channel.requests], ["focus", "look"])
+        req = self.sent("look")[0]
+        self.assertEqual(req["pause"], inputs.WindowsInput.LOOK_PAUSE_MS)
+        self.assertEqual(len(req["moves"]), 32)  # 630 / 20, rounded up
+        self.assertEqual((sum(m[0] for m in req["moves"]), sum(m[1] for m in req["moves"])), (630, -45))
+        self.assertTrue(all(abs(m[0]) <= 20 and abs(m[1]) <= 20 for m in req["moves"]))
+
+    def test_look_with_a_step_count(self):
+        self.inp.look(-100, 0, steps=4)
+        self.assertEqual(self.sent("look")[0]["moves"], [[-25, 0]] * 4)
+
+    def test_a_bad_step_count_sends_nothing(self):
+        with self.assertRaises(inputs.InputError):
+            self.inp.look(10, 0, steps=0)
+        self.assertEqual(self.channel.requests, [])
+
+    def test_typing_with_keys_presses_scancodes_with_shift_for_capitals(self):
+        self.inp.type_keys("Tom 7!")
+        req = self.sent("strokes")[0]
+        shift = [0x2A, False]
+        self.assertEqual(req["strokes"], [[shift, [0x14, False]], [[0x18, False]], [[0x32, False]],
+                                          [[0x39, False]], [[0x08, False]], [shift, [0x02, False]]])
+        self.assertEqual((req["hold"], req["gap"]),
+                         (inputs.WindowsInput.KEY_HOLD_MS, inputs.WindowsInput.KEY_GAP_MS))
+        self.assertEqual(self.sent("text"), [])
+
+    def test_what_a_us_keyboard_cannot_type_stays_unicode_in_order(self):
+        self.inp.type_keys("Ré-é")
+        ops = [(o, f.get("text") or len(f.get("strokes", []))) for o, f in self.channel.requests if o != "focus"]
+        self.assertEqual(ops, [("strokes", 1), ("text", "é"), ("strokes", 1), ("text", "é")])
+
+    def test_long_text_goes_in_several_requests(self):
+        self.inp.type_keys("a" * 250)
+        self.assertEqual([len(f["strokes"]) for f in self.sent("strokes")], [100, 100, 50])

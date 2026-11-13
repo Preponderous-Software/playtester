@@ -6,12 +6,15 @@
 
 Session commands (need PT_SESSION; PT_ROOT is where sessions live)
   start [--profile P] [--game-dir D] [--seed S] [--no-probe] [--width W --height H]
-        [--clock free|stepped [--step SECS]] [game args...]
+        [--clock free|stepped [--step SECS]] [--attach] [--module M] [game args...]
                             Xvfb on a free display + the game; waits for its window
                             (and first state.json); on failure prints the log tail and cleans up.
                             A "driver": "strata" profile needs no Xvfb: the game runs headless
                             and is driven through its drive channel; --clock stepped makes it
-                            wait for pt between frames, so a run repeats frame for frame
+                            wait for pt between frames, so a run repeats frame for frame.
+                            A "driver": "windows" profile drives the real Windows desktop from
+                            WSL2 (one session at a time): --attach drives a copy already running
+                            (pt stop then leaves it running), --module M picks a game module
   stop                      stop the game and its Xvfb (safe to repeat)
   status                    running?, display, CPU/RSS, fps (Strata driver: frame and clock)
   key KEY...                tap keys; a KEY may be a combo such as Shift_L+w
@@ -19,10 +22,11 @@ Session commands (need PT_SESSION; PT_ROOT is where sessions live)
   click X Y [BUTTON]        click at window coordinates (hovers first)
   mousehold SECS [BUTTON]   hold a mouse button where the pointer is
   move X Y                  move the pointer without clicking
-  look DX DY                relative pointer motion (mouse look)
+  look DX DY [--steps N]    relative pointer motion (mouse look), split into N smooth steps
   drag X1 Y1 X2 Y2 SECS [BUTTON]   drag with a button held (default 3, the right one)
   scroll N                  mouse wheel: + down, - up
-  type TEXT                 type text into a focused text field
+  type [--keys] TEXT        type text into a focused text field; --keys (Windows driver) presses
+                            keys (scancodes, Shift for capitals) for fields that ignore unicode text
   shot NAME                 screenshot of the game's window to shots/NAME.png; prints the path
   note [--shot NAME] TEXT   append a finding to findings.jsonl (optionally with a screenshot)
   wait SECS                 let SECS of game time pass (sleep; stepped: step SECS/step frames)
@@ -66,7 +70,7 @@ import sys
 import time
 from typing import Any, Dict, List, Optional
 
-from . import inputs, probe, strata_keys
+from . import inputs, probe, strata_keys, windows_keys, xdo
 from . import profile as profiles
 from .session import HarnessError, Session, now_ms, append_json, tail
 from .strata_driver import DriveError
@@ -83,6 +87,21 @@ def out(obj: Any) -> None:
 def _need(args: List[str], n: int, usage: str) -> None:
     if len(args) < n:
         raise HarnessError("usage: pt " + usage)
+
+
+def take_option(args: List[str], name: str, has_value: bool = True) -> Any:
+    """Removes ``name`` (and its value) from ``args``; returns the value, True for a flag, or None."""
+    if name not in args:
+        return None
+    i = args.index(name)
+    if not has_value:
+        del args[i]
+        return True
+    if i + 1 >= len(args):
+        raise HarnessError("%s needs a value" % name)
+    value = args[i + 1]
+    del args[i:i + 2]
+    return value
 
 
 def safe_name(name: str) -> str:
@@ -104,9 +123,9 @@ def parse_start(args: List[str]) -> Dict[str, Any]:
     opts = {"profile": os.environ.get("PT_PROFILE"), "game_dir": os.environ.get("PT_GAME_DIR") or os.getcwd(),
             "seed": None, "probe": True, "width": os.environ.get("PT_WIDTH"), "height": os.environ.get("PT_HEIGHT"),
             "clock": os.environ.get("PT_CLOCK"), "step": os.environ.get("PT_STEP"),
-            "extra": []}  # type: Dict[str, Any]
+            "attach": False, "module": None, "extra": []}  # type: Dict[str, Any]
     takes = {"--profile": "profile", "--game-dir": "game_dir", "--seed": "seed", "--width": "width", "--height": "height",
-             "--clock": "clock", "--step": "step"}
+             "--clock": "clock", "--step": "step", "--module": "module"}
     i = 0
     while i < len(args):
         a = args[i]
@@ -121,6 +140,8 @@ def parse_start(args: List[str]) -> Dict[str, Any]:
             continue
         if a == "--no-probe":
             opts["probe"] = False
+        elif a == "--attach":
+            opts["attach"] = True
         else:
             opts["extra"].append(a)
         i += 1
@@ -136,7 +157,8 @@ def run_session_command(session: Session, cmd: str, args: List[str]) -> int:
         profile = profiles.load(opts["profile"] or "")
         info = session.start(profile, opts["game_dir"], opts["seed"], opts["extra"], use_probe=opts["probe"],
                              width=opts["width"], height=opts["height"], clock=opts["clock"],
-                             step=float(opts["step"]) if opts["step"] else None)
+                             step=float(opts["step"]) if opts["step"] else None, attach=opts["attach"],
+                             module=opts["module"])
         for warning in info.get("buildWarnings", []):
             print("pt: warning: " + warning, file=sys.stderr)
         out(info)
@@ -163,8 +185,12 @@ def run_session_command(session: Session, cmd: str, args: List[str]) -> int:
         _need(args, 2, "move X Y")
         session.input().move(int(args[0]), int(args[1]))
     elif cmd == "look":
-        _need(args, 2, "look DX DY")
-        session.input().look(int(float(args[0])), int(float(args[1])))
+        args = list(args)
+        steps = take_option(args, "--steps")
+        _need(args, 2, "look DX DY [--steps N]")
+        if steps is not None and not 1 <= int(steps) <= xdo.MAX_LOOK_STEPS:
+            raise HarnessError("--steps takes 1 to %d" % xdo.MAX_LOOK_STEPS)
+        session.input().look(int(float(args[0])), int(float(args[1])), steps=int(steps) if steps else None)
     elif cmd == "drag":
         _need(args, 5, "drag X1 Y1 X2 Y2 SECS [BUTTON]")
         x1, y1, x2, y2 = (int(a) for a in args[:4])
@@ -173,7 +199,11 @@ def run_session_command(session: Session, cmd: str, args: List[str]) -> int:
         _need(args, 1, "scroll N")
         session.input().scroll(int(args[0]))
     elif cmd == "type":
-        session.input().type_text(" ".join(args))
+        if args and args[0] == "--keys":
+            _need(args, 2, "type --keys TEXT")
+            session.input().type_keys(" ".join(args[1:]))
+        else:
+            session.input().type_text(" ".join(args))
     elif cmd == "shot":
         _need(args, 1, "shot NAME")
         print(screenshot(session, args[0]))
@@ -287,6 +317,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             session = Session(os.environ.get("PT_SESSION", ""), os.environ.get("PT_ROOT"))
             os.makedirs(session.dir, exist_ok=True)
             session.log_action(cmd, args)
+            if cmd not in ("start", "stop") and session.info().get("driver") == "windows":
+                from . import windows_log
+                windows_log.sync(session)  # the game's log, into game.log and the probe files
             status = run_session_command(session, cmd, args)
             if cmd not in ("start", "stop", "dir", "log", "report", "probe-check") and os.path.isdir(session.probe_dir):
                 probe.read_state(session)  # where the command left the player, for the track
@@ -326,7 +359,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 p.get("process_name", "-")))
             return 0
         raise HarnessError("unknown command: %s (pt help)" % cmd)
-    except (HarnessError, profiles.ProfileError, RuntimeError, DriveError, strata_keys.UnknownKey) as e:
+    except (HarnessError, profiles.ProfileError, RuntimeError, DriveError, strata_keys.UnknownKey,
+            windows_keys.UnknownKey) as e:
         print("pt: %s" % e, file=sys.stderr)
         return 1
     except (ValueError, IndexError) as e:
