@@ -22,10 +22,11 @@ Session commands (need PT_SESSION; PT_ROOT is where sessions live)
   click X Y [BUTTON]        click at window coordinates (hovers first)
   mousehold SECS [BUTTON]   hold a mouse button where the pointer is
   move X Y                  move the pointer without clicking
-  look DX DY                relative pointer motion (mouse look)
+  look DX DY [--steps N]    relative pointer motion (mouse look), split into N smooth steps
   drag X1 Y1 X2 Y2 SECS [BUTTON]   drag with a button held (default 3, the right one)
   scroll N                  mouse wheel: + down, - up
-  type TEXT                 type text into a focused text field
+  type [--keys] TEXT        type text into a focused text field; --keys (Windows driver) presses
+                            keys (scancodes, Shift for capitals) for fields that ignore unicode text
   shot NAME                 screenshot of the game's window to shots/NAME.png; prints the path
   note [--shot NAME] TEXT   append a finding to findings.jsonl (optionally with a screenshot)
   wait SECS                 let SECS of game time pass (sleep; stepped: step SECS/step frames)
@@ -69,7 +70,7 @@ import sys
 import time
 from typing import Any, Dict, List, Optional
 
-from . import inputs, probe, strata_keys, windows_keys
+from . import inputs, probe, strata_keys, windows_keys, xdo
 from . import profile as profiles
 from .session import HarnessError, Session, now_ms, append_json, tail
 from .strata_driver import DriveError
@@ -86,6 +87,21 @@ def out(obj: Any) -> None:
 def _need(args: List[str], n: int, usage: str) -> None:
     if len(args) < n:
         raise HarnessError("usage: pt " + usage)
+
+
+def take_option(args: List[str], name: str, has_value: bool = True) -> Any:
+    """Removes ``name`` (and its value) from ``args``; returns the value, True for a flag, or None."""
+    if name not in args:
+        return None
+    i = args.index(name)
+    if not has_value:
+        del args[i]
+        return True
+    if i + 1 >= len(args):
+        raise HarnessError("%s needs a value" % name)
+    value = args[i + 1]
+    del args[i:i + 2]
+    return value
 
 
 def safe_name(name: str) -> str:
@@ -169,8 +185,12 @@ def run_session_command(session: Session, cmd: str, args: List[str]) -> int:
         _need(args, 2, "move X Y")
         session.input().move(int(args[0]), int(args[1]))
     elif cmd == "look":
-        _need(args, 2, "look DX DY")
-        session.input().look(int(float(args[0])), int(float(args[1])))
+        args = list(args)
+        steps = take_option(args, "--steps")
+        _need(args, 2, "look DX DY [--steps N]")
+        if steps is not None and not 1 <= int(steps) <= xdo.MAX_LOOK_STEPS:
+            raise HarnessError("--steps takes 1 to %d" % xdo.MAX_LOOK_STEPS)
+        session.input().look(int(float(args[0])), int(float(args[1])), steps=int(steps) if steps else None)
     elif cmd == "drag":
         _need(args, 5, "drag X1 Y1 X2 Y2 SECS [BUTTON]")
         x1, y1, x2, y2 = (int(a) for a in args[:4])
@@ -179,7 +199,11 @@ def run_session_command(session: Session, cmd: str, args: List[str]) -> int:
         _need(args, 1, "scroll N")
         session.input().scroll(int(args[0]))
     elif cmd == "type":
-        session.input().type_text(" ".join(args))
+        if args and args[0] == "--keys":
+            _need(args, 2, "type --keys TEXT")
+            session.input().type_keys(" ".join(args[1:]))
+        else:
+            session.input().type_text(" ".join(args))
     elif cmd == "shot":
         _need(args, 1, "shot NAME")
         print(screenshot(session, args[0]))

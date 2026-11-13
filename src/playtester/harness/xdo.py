@@ -7,7 +7,7 @@ Coordinates are window coordinates, as in screenshots.
 
 import subprocess
 import time
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 # A key tap: down, held this long, up, then this long before the next key.
 TAP_HOLD = 0.12
@@ -16,6 +16,8 @@ TAP_GAP = 0.25
 # hovers for a few frames first (learned on Dear ImGui at 3-10 fps).
 HOVER_BEFORE_CLICK = 0.3
 CLICK_HOLD = 0.15
+# pt look: the most steps one motion may be split into.
+MAX_LOOK_STEPS = 1000
 
 
 def run(env: Dict[str, str], *args, check: bool = False) -> str:
@@ -77,15 +79,31 @@ def move(env: Dict[str, str], window: str, x: int, y: int) -> None:
     run(env, "mousemove", "--window", window, int(x), int(y))
 
 
-def move_relative(env: Dict[str, str], dx: int, dy: int, step: int = 120, pause: float = 0.02) -> None:
-    """Relative pointer motion, in steps: games in relative mouse mode (mouse look) read the deltas."""
+def look_deltas(dx: int, dy: int, steps: Optional[int] = None, step: int = 120) -> List[Tuple[int, int]]:
+    """``(dx, dy)`` split into ``steps`` relative motions that add up to it exactly.
+
+    Without ``steps``, as few as keep every motion within ``step`` pixels on
+    each axis. Raises ValueError for fewer than 1 or more than MAX_LOOK_STEPS.
+    """
     dx, dy = int(dx), int(dy)
-    steps = max(1, (max(abs(dx), abs(dy)) + step - 1) // step)
-    sent_x = sent_y = 0
+    if steps is None:
+        steps = max(1, (max(abs(dx), abs(dy)) + step - 1) // step)
+    steps = int(steps)
+    if not 1 <= steps <= MAX_LOOK_STEPS:
+        raise ValueError("look takes 1 to %d steps, not %d" % (MAX_LOOK_STEPS, steps))
+    deltas, sent_x, sent_y = [], 0, 0
     for i in range(1, steps + 1):
-        tx, ty = dx * i // steps, dy * i // steps
-        run(env, "mousemove_relative", "--", tx - sent_x, ty - sent_y)
+        tx, ty = int(dx * i / steps), int(dy * i / steps)  # toward zero, so - mirrors +
+        deltas.append((tx - sent_x, ty - sent_y))
         sent_x, sent_y = tx, ty
+    return deltas
+
+
+def move_relative(env: Dict[str, str], dx: int, dy: int, step: int = 120, pause: float = 0.02,
+                  steps: Optional[int] = None) -> None:
+    """Relative pointer motion, in steps: games in relative mouse mode (mouse look) read the deltas."""
+    for ddx, ddy in look_deltas(dx, dy, steps, step):
+        run(env, "mousemove_relative", "--", ddx, ddy)
         time.sleep(pause)
 
 

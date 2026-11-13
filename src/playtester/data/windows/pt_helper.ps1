@@ -218,8 +218,41 @@ function Handle($r) {
             foreach ($ch in ([string]$r.text).ToCharArray()) { [PtWin]::Unicode($ch); Start-Sleep -Milliseconds 40 }
             return @{ ok = $true }
         }
+        'strokes' {
+            # strokes: [[[scan, extended], ...], ...]: each a combo (Shift_L + a letter, say) pressed in
+            # order, held `hold` ms and released in reverse, then `gap` ms before the next (pt type --keys,
+            # for text fields that ignore unicode events)
+            $strokes = @($r.strokes)
+            if ($strokes.Count -lt 1 -or $strokes.Count -gt 500) { return @{ ok = $false; error = 'strokes takes 1 to 500 keys' } }
+            $hold = [Math]::Min(500, [Math]::Max(0, [int]$r.hold))
+            $gap = [Math]::Min(1000, [Math]::Max(0, [int]$r.gap))
+            foreach ($s in $strokes) { if (@($s).Count -lt 1 -or @($s).Count -gt 4) { return @{ ok = $false; error = 'a stroke is 1 to 4 keys' } } }
+            foreach ($s in $strokes) {
+                $keys = @($s)
+                foreach ($k in $keys) { [PtWin]::Key([int]$k[0], [bool]$k[1], $false); Start-Sleep -Milliseconds 10 }
+                Start-Sleep -Milliseconds $hold
+                [array]::Reverse($keys)
+                foreach ($k in $keys) { [PtWin]::Key([int]$k[0], [bool]$k[1], $true); Start-Sleep -Milliseconds 10 }
+                Start-Sleep -Milliseconds $gap
+            }
+            return @{ ok = $true; strokes = $strokes.Count }
+        }
         'move' { [void][PtWin]::SetCursorPos([int]$r.x, [int]$r.y); return @{ ok = $true } }
-        'rel' { [PtWin]::Mouse(0x0001, [int]$r.dx, [int]$r.dy, 0); return @{ ok = $true } }
+        'look' {
+            # moves: [[dx, dy], ...] relative motions (MOUSEEVENTF_MOVE, no MOUSEEVENTF_ABSOLUTE: what a
+            # game in mouse look reads), `pause` ms apart, so raw-input games see smooth motion
+            $moves = @($r.moves)
+            if ($moves.Count -lt 1 -or $moves.Count -gt 1000) { return @{ ok = $false; error = 'look takes 1 to 1000 moves' } }
+            $pause = [Math]::Min(100, [Math]::Max(0, [int]$r.pause))
+            foreach ($m in $moves) {
+                if ([Math]::Abs([int]$m[0]) -gt 10000 -or [Math]::Abs([int]$m[1]) -gt 10000) { return @{ ok = $false; error = 'a look move is at most 10000 pixels' } }
+            }
+            foreach ($m in $moves) {
+                [PtWin]::Mouse(0x0001, [int]$m[0], [int]$m[1], 0)
+                if ($pause -gt 0) { Start-Sleep -Milliseconds $pause }
+            }
+            return @{ ok = $true; moves = $moves.Count }
+        }
         'button' {
             # button 1 left, 2 middle, 3 right (X11 numbering, as everywhere in pt)
             $flags = @{ 1 = @(0x0002, 0x0004); 2 = @(0x0020, 0x0040); 3 = @(0x0008, 0x0010) }[[int]$r.button]

@@ -59,6 +59,29 @@ class KeyTableTest(unittest.TestCase):
         with self.assertRaises(windows_keys.UnknownKey):
             windows_keys.scancode("Hyper_Q")
 
+    def test_characters_a_us_keyboard_types(self):
+        self.assertEqual(windows_keys.char_keys("t"), ["t"])
+        self.assertEqual(windows_keys.char_keys("T"), ["Shift_L", "t"])
+        self.assertEqual(windows_keys.char_keys("7"), ["7"])
+        self.assertEqual(windows_keys.char_keys(" "), ["space"])
+        self.assertEqual(windows_keys.char_keys("?"), ["Shift_L", "slash"])
+        self.assertEqual(windows_keys.char_keys("'"), ["apostrophe"])
+        self.assertEqual(windows_keys.char_keys('"'), ["Shift_L", "apostrophe"])
+        for ch in ("\u00e9", "\n", "\t", "\u00df"):
+            self.assertIsNone(windows_keys.char_keys(ch))
+        # every printable ASCII character has keys, and every key name has a scancode
+        for code in range(32, 127):
+            names = windows_keys.char_keys(chr(code))
+            self.assertIsNotNone(names, chr(code))
+            windows_keys.combo_scancodes(names)
+
+    def test_text_strokes_keep_unicode_runs_in_order(self):
+        runs = windows_keys.text_strokes("Hi \u00e9\u00e9!")
+        self.assertEqual([k for k, _ in runs], ["keys", "text", "keys"])
+        self.assertEqual(runs[0][1][0], [[0x2A, False], [0x23, False]])
+        self.assertEqual(runs[1][1], "\u00e9\u00e9")
+        self.assertEqual(runs[2][1], [[[0x2A, False], [0x02, False]]])
+
 
 class HelperCommandTest(unittest.TestCase):
     def setUp(self):
@@ -433,6 +456,40 @@ class FakeDesktopSessionTest(unittest.TestCase):
         self.assertEqual(self.ops("kill"), [])
         self.assertFalse(os.path.exists(os.path.join(self.dir, "desktop.lock")))
         self.assertEqual(pt(env, "shot", "after").returncode, 1)
+
+    def test_look_and_typing_with_keys_reach_the_helper(self):
+        env = dict(self.env, PT_SESSION="s01", FAKE_WIN_RUNNING="999")
+        r = pt(env, "start", "--profile", self.profile, "--game-dir", self.game, "--attach")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+        r = pt(env, "look", "630", "-45")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        moves = self.ops("look")[-1]["moves"]
+        self.assertEqual((sum(m[0] for m in moves), sum(m[1] for m in moves)), (630, -45))
+        self.assertTrue(all(abs(m[0]) <= 20 and abs(m[1]) <= 20 for m in moves))
+        self.assertEqual(self.ops("move"), [])  # never an absolute position
+        self.assertEqual(pt(env, "look", "-90", "0", "--steps", "3").returncode, 0)
+        self.assertEqual(self.ops("look")[-1]["moves"], [[-30, 0]] * 3)
+        for bad in ("0", "1001"):
+            r = pt(env, "look", "10", "0", "--steps", bad)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("--steps takes 1 to 1000", r.stderr)
+        r = pt(env, "look", "20000", "0", "--steps", "1")  # the helper's bound
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("at most 10000 pixels", r.stderr)
+
+        r = pt(env, "type", "--keys", "Ann", "\u00e9!")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        strokes = [s["strokes"] for s in self.ops("strokes")]
+        self.assertEqual(strokes[0], [[[0x2A, False], [0x1E, False]], [[0x31, False]], [[0x31, False]],
+                                      [[0x39, False]]])
+        self.assertEqual(strokes[1], [[[0x2A, False], [0x02, False]]])
+        self.assertEqual([t["text"] for t in self.ops("text")], ["\u00e9"])
+        self.assertEqual(pt(env, "type", "plain").returncode, 0)  # without --keys: unicode events, as before
+        self.assertEqual(self.ops("text")[-1]["text"], "plain")
+        self.assertEqual(len(self.ops("strokes")), 2)
+        self.assertEqual(pt(env, "type", "--keys").returncode, 1)
+        self.assertEqual(pt(env, "stop").returncode, 0)
 
     def test_launch_sets_the_module_and_stop_closes_the_game_and_puts_it_back(self):
         env = dict(self.env, PT_SESSION="s01")
