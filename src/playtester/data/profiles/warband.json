@@ -1,0 +1,122 @@
+{
+  "$comment": "Mount&Blade: Warband on the real Windows desktop (Windows driver), for playtesting modules (mods), such as a mod's test build that shows probe lines on screen (docs/PROBE_LINES.md). Takes over the owner's screen: one session at a time. --game-dir is the Steam install folder; --module picks the module (the launcher remembers the last one in the registry).",
+  "name": "warband",
+  "title": "Mount&Blade: Warband",
+  "description": "a medieval sandbox RPG on Windows: ride a campaign map, trade, recruit and fight battles; sessions play a module (a mod) under test, on the real Windows desktop through the Windows driver",
+  "driver": "windows",
+  "windows": {
+    "process": "mb_warband",
+    "min_width": 1024,
+    "launcher": {
+      "keys": [
+        "Return"
+      ],
+      "click": [
+        0.215,
+        0.345
+      ],
+      "attempts": 3
+    },
+    "module": "Native",
+    "registry": [
+      {
+        "key": "HKCU\\Software\\MountAndBladeWarbandKeys",
+        "name": "last_module_warband",
+        "value": "{module}"
+      }
+    ],
+    "log": "{game_dir}/rgl_log.txt",
+    "probe_format": "ptline",
+    "ocr": {
+      "rect": [
+        0.0,
+        0.45,
+        0.62,
+        0.935
+      ],
+      "color": "#FF00FF",
+      "tolerance": 90,
+      "scale": 1.0,
+      "interval_sec": 1.5
+    },
+    "log_error_patterns": [
+      "SCRIPT ERROR",
+      "(?i)^\\s*error\\b",
+      "(?i)\\bunable to (open|load|find)\\b",
+      "(?i)unhandled exception"
+    ],
+    "close_timeout_sec": 20
+  },
+  "launch": {
+    "command": [
+      "{game_dir}/mb_warband.exe"
+    ],
+    "cwd": "{game_dir}",
+    "start_timeout_sec": 240,
+    "settle_sec": 3
+  },
+  "window": {
+    "title_regex": "^Mount&Blade",
+    "width": 1280,
+    "height": 720
+  },
+  "crash_patterns": [
+    "(?i)unhandled exception",
+    "(?i)access violation"
+  ],
+  "process_name": "mb_warband",
+  "agent_notes": "warband.md",
+  "cheats": "Do not use the cheat menu or Ctrl+key cheats (Ctrl+T, Ctrl+X, Ctrl+H, ...) unless your goal says so. Do not start a new game, overwrite or delete saves, or change the game's options unless your goal says so.",
+  "smoke": {
+    "description": "Open and close the inventory from the world map, with a screenshot each way (needs a game in progress on the map; run it with pt smoke --attach)",
+    "steps": [
+      [
+        "wait",
+        "1"
+      ],
+      [
+        "shot",
+        "01-map"
+      ],
+      [
+        "key",
+        "i"
+      ],
+      [
+        "wait",
+        "1.5"
+      ],
+      [
+        "shot",
+        "02-inventory"
+      ],
+      [
+        "key",
+        "Escape"
+      ],
+      [
+        "wait",
+        "1.5"
+      ],
+      [
+        "shot",
+        "03-map"
+      ],
+      [
+        "events",
+        "20"
+      ]
+    ]
+  },
+  "goals": [
+    {
+      "goal": "On the world map, find the module's new content the profile's notes or your goal name (towns, parties, menus), travel there by clicking the map, and try each thing it offers once. Report anything broken, confusing or ugly, with screenshots, and every log_error event (pt events).",
+      "budget_min": 30
+    },
+    {
+      "goal": "Inventory and trade: open the inventory, move items between your character, your party's stock and a merchant (click to pick up, click to drop), buy and sell one item, and check that prices and weights add up. Report what felt awkward.",
+      "budget_min": 25
+    }
+  ],
+  "evidence_dir": "docs/playtests"
+}

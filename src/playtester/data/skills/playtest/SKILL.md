@@ -71,6 +71,13 @@ pt prompt --profile $PROFILE --goal-index 1 --session s01 --run-dir "$RUN" --gam
 # or with your own goal: --goal "..." --seed 101 --budget 30 [--start-args "--season autumn"]
 ```
 
+**Windows-driver profiles** (`"driver": "windows"`, e.g. `warband`) are the
+exception: the session takes over the owner's real Windows desktop and only
+one may run at a time (`pt start` refuses a second while the desktop lock is
+held). Run those sessions one after another, never in parallel, tell the
+owner first, and pass `--start-args "--attach"` when the game is already
+open (`pt stop` then leaves it open).
+
 Spawn all N subagents **in one message**, in parallel, general-purpose, each
 with the full text of its filled prompt. Do not give them worktree
 isolation: they must not modify the repository and need no copy of it.

@@ -84,7 +84,10 @@ src/playtester/
   __init__.py              __version__; lazy GameAutomator, ScreenshotCapture, AIDecisionEngine, ActionExecutor
   __main__.py              python -m playtester == pt
   harness/                 Agent kit: cli.py (pt), session.py (Xvfb/game lifecycle, display lock), xdo.py (input),
-                           probe.py (state/events, face, walkto), profile.py, smoke.py, measure.py
+                           probe.py (state/events, face, walkto), profile.py, smoke.py, measure.py,
+                           strata_*.py (Strata driver), windows_*.py (Windows driver: helper relay, desktop
+                           lock, keys, log probe, OCR probe; the PowerShell helper is data/windows/pt_helper.ps1),
+                           ptline.py (probe lines: format, check digit, decoder)
   agents/                  prompt.py (pt prompt), report.py (pt report), aggregate.py (pt aggregate)
   schema.py, probecheck.py Mini JSON Schema validator; probe contract checker
   ghosts.py                pt ghosts: runs' track.jsonl as fading trails, rendered with Strata (optional binding)
@@ -97,7 +100,7 @@ src/playtester/
   games/                   Per-game presets: roam.py (RoamAutomator), ophidian.py (OphidianAutomator)
 examples/                  Runnable scripts: basic, roam, ophidian
 tests/                     unittest suite; fixtures/run is a recorded three-session run
-docs/                      AGENT_PLAYTESTING.md, PROFILES.md, PROBE_CONTRACT.md, API_REFERENCE.md, ARCHITECTURE.md, IMPLEMENTATION_PLAN.md, README.md
+docs/                      AGENT_PLAYTESTING.md, PROFILES.md, PROBE_CONTRACT.md, PROBE_LINES.md, API_REFERENCE.md, ARCHITECTURE.md, IMPLEMENTATION_PLAN.md, README.md
 README.md, USER_GUIDE.md, QUICKSTART.md, CHANGELOG.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md
 ```
 

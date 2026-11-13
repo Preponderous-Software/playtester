@@ -17,11 +17,13 @@ checks one against [`profile.schema.json`](../src/playtester/data/schemas/profil
 | `steading-strata` | steading, a colony simulation on Strata, on the Strata driver | none |
 | `orrery-strata` | orrery, the solar system from JPL data on Strata, on the Strata driver | none |
 | `sisyphus-strata` | Sisyphus, a game about software upkeep on Strata, on the Strata driver | none; asks `questions` |
+| `warband` | Mount&Blade: Warband and its modules, on the real Windows desktop (Windows driver) | `PTPROBE` lines and errors from `rgl_log.txt` |
 
 The `-strata` profiles drive the game through Strata's drive channel instead
 of Xvfb and xdotool ([below](#drivers)). `kindling` and `kindling-strata` are
 the same game with the same smoke script, kept side by side so the two
-drivers can be compared.
+drivers can be compared. `warband` runs on the Windows driver, which takes
+over the desktop of the Windows machine hosting WSL2.
 
 ## Fields
 
@@ -31,7 +33,8 @@ drivers can be compared.
 | `title` | yes | The game's name, as agents call it |
 | `description` | yes | One phrase agents read first ("a 3D colony-and-nations game: ...") |
 | `repository` | | `owner/name`, for issues and evidence |
-| `driver` | | `x11` (default) or `strata`; see [Drivers](#drivers) |
+| `driver` | | `x11` (default), `strata` or `windows`; see [Drivers](#drivers) |
+| `windows` | windows only | The Windows driver's settings; [below](#windows) |
 | `build.command` | | Shell command run in the game's checkout that builds what `launch.command` runs |
 | `build.requires` | | The toolchain the build needs, a list of commands (e.g. `["dotnet"]`); `pt validate-profile` prints it |
 | `build.artifact` | | The built file whose modification time is the build's time, with the `launch` placeholders (default `launch.command[0]` when it is inside the game's checkout). `pt start` warns when it is older than the checkout's HEAD commit or an uncommitted edit |
@@ -45,8 +48,8 @@ drivers can be compared.
 | `launch.start_timeout_sec` | | How long `start` waits for the window (default 90) |
 | `launch.settle_sec` | | Wait this long after the window appears (games whose first frames are blank) |
 | `launch.lp_threads` | | llvmpipe threads per game unless `PT_LP_THREADS` is set (default 2) |
-| `window.title_regex` | x11 only | `xdotool search --name` pattern for the game's window (not used by the Strata driver) |
-| `window.width`, `window.height` | | Window size (default 960x540); `PT_WIDTH`/`PT_HEIGHT` override |
+| `window.title_regex` | x11, windows | `xdotool search --name` pattern for the game's window; with the Windows driver, a regular expression for the title of the game's window (not used by the Strata driver) |
+| `window.width`, `window.height` | | Window size (default 960x540); `PT_WIDTH`/`PT_HEIGHT` override. With the Windows driver, the size screenshots are saved at and coordinates are given in (the game's real window is scaled to it) |
 | `probe` | | `null` (screenshots only) or `{flag, ticks_per_second, world_screens, screens, since}`; see [PROBE_CONTRACT.md](PROBE_CONTRACT.md) |
 | `movement` | | For `face` and `walkto` (needs a probe); below |
 | `crash_patterns` | | Regular expressions that mark a crash in `game.log`; the aggregator turns a match into a blocker finding |
@@ -76,6 +79,26 @@ share them), `{probe_dir}` (`<session>/out`), `{width}`, `{height}`,
 | `stop_distance` | `walkto` stops closer than this |
 | `face_tolerance` | Degrees `face` accepts as done (default 8) |
 | `nearest_kinds` | The kinds of `nearest` agents may `walkto` |
+
+### `windows`
+
+For `"driver": "windows"` profiles. Strings may use the `launch`
+placeholders and `{module}` (`pt start --module M`, else `PT_MODULE`, else
+`windows.module`).
+
+| Field | |
+| --- | --- |
+| `process` | The game's process name without `.exe` (required); `pt start` finds a running copy by it |
+| `min_width` | The game's window is at least this wide; a smaller window of the same process is taken for its launcher |
+| `launcher` | `{title_regex, keys, click, attempts}`: a game pt launches shows a launcher first; pt brings it to the front and presses `keys` (default `Return`) up to `attempts` times (default 3). When Windows will not bring it to the front, pt clicks `click` (`[x, y]` fractions of the launcher's client area, its start button) instead |
+| `module` | The default for `{module}` |
+| `registry` | `[{key, name, value}]`: values `pt start` sets before launching (`HKCU\...`), for example the module the launcher picks; `pt stop` puts back the values that were there. Never set when attaching |
+| `log` | The game's log file (a WSL path, e.g. under `/mnt/c`): pt copies what it gains into `game.log` and reads probe lines and errors from it (the log probe) |
+| `log_prefix` | With the `keyvalue` format, lines containing this become probe events (default `PTPROBE`); see [Drivers](#drivers) |
+| `probe_format` | `keyvalue` (default: `PREFIX TYPE key=value ...` lines in the log) or `ptline` (the short checked lines of [PROBE_LINES.md](PROBE_LINES.md), from the log and, with `ocr`, from the screen) |
+| `ocr` | `{rect, color, tolerance, scale, interval_sec, psm, whitelist}`: read `ptline` probe lines off the screen (needs `tesseract` on the PATH): `pt start` runs a reader that captures `rect` (`[left, top, right, bottom]` fractions of the game's client area) every `interval_sec` (default 1.5), keeps the pixels within `tolerance` (default 90) of `color` (`#RRGGBB`) and runs OCR; see [PROBE_LINES.md](PROBE_LINES.md) |
+| `log_error_patterns` | Regular expressions: matching log lines become `log_error` events |
+| `close_timeout_sec` | `pt stop` asks a game it launched to close, waits this long (default 15), then kills it |
 
 ### `smoke`
 
@@ -131,6 +154,53 @@ then give the same frames, run after run, whatever the machine's load.
 time while the agent thinks. Games read the clock through Strata's
 `frameSeconds()`, and a driven game does not write the player's saves
 (each game's own change; see its log line "driven by a test harness").
+
+- **`windows`**: for games that only run on Windows (Mount&Blade: Warband and
+  its modules), from WSL2 on the Windows machine itself. **It takes over the
+  owner's screen**: the game runs on the real desktop, `pt` brings its window
+  to the front (restoring it if minimised: a minimised game draws nothing)
+  before every command, and keys and clicks are real input. So only one
+  session may drive the desktop at a time: `pt start` takes the desktop lock
+  (`~/.pt-windows-desktop.lock`, or `PT_WINDOWS_LOCK`), holding the session
+  name, run directory and the pid of the session's relay, and refuses with
+  the holder's name while it is held; `pt stop` releases it. A lock whose
+  relay no longer runs is stale and is taken over.
+
+  `pt start` starts one `powershell.exe` helper for the session
+  (`data/windows/pt_helper.ps1`, held by a small relay like the Strata
+  driver's), then launches the game (`Start-Process`; `launch.command` is the
+  `.exe` under `/mnt/c`, `launch.cwd` its folder) or, with `pt start
+  --attach`, drives a copy that is already running and leaves it running at
+  `pt stop`. It refuses to launch a second copy. Keys are scancodes sent with
+  `SendInput` and `KEYEVENTF_SCANCODE` (games reading DirectInput ignore
+  virtual-key events; names as for the other drivers, unknown names are
+  errors), the pointer is the real one (`SetCursorPos` and `SendInput`
+  buttons, wheel and relative motion), and `shot` copies the window's area
+  from the screen (`PrintWindow` gives black frames for Direct3D games) and
+  scales it to `window.width` x `window.height`; clicks are scaled back.
+  `desktop.jsonl` records every line sent to the helper.
+
+  The probe of a Windows game comes from its log (`windows.log`) and, for
+  games that cannot write files while they run, from the screen. Every `pt`
+  command first copies the lines the log gained into `game.log`. With
+  `windows.probe_format` `keyvalue` (the default), a line containing
+  `windows.log_prefix` (`PTPROBE`) becomes an event in `out/events.jsonl`,
+  written either as JSON or as `TYPE key=value ...` (quoted values may hold
+  spaces, numbers and true/false are converted, dotted keys nest); a
+  `PTPROBE state key=value ...` line updates `out/state.json` instead, and a
+  `screen` event's `to` sets its screen, so `pt state`, `pt events` and
+  `pt await SCREEN` work. With `ptline`, probe lines are the short checked
+  lines of [PROBE_LINES.md](PROBE_LINES.md), and `windows.ocr` reads them
+  off the screen while the game runs (Mount&Blade: Warband writes its log
+  only when it exits, so for it the log only gives errors, after the game
+  closes). Lines matching `windows.log_error_patterns` become `log_error`
+  events. A game that prints no probe lines is screenshot-only.
+  Measured with a full-screen game at 1440p (Windows 11, WSL2): a helper request takes
+  about 1 ms (bringing the window to the front 17 ms), a screenshot scaled
+  to 1280x720 about 165 ms, and a whole `pt key`/`pt shot`/`pt click` about
+  0.5/0.25/0.7 s including Python's start and the tap, hover and click
+  delays; starting `powershell.exe` and compiling its bindings for each
+  action would add about half a second to every one.
 
 ## Adding a game
 

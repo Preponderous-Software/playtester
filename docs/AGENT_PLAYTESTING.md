@@ -188,6 +188,42 @@ Two stepped runs of the same build, seed and commands give the same frames:
 records Kindling, Atman and orrery twice each with
 `examples/strata_driver_demo.py`, every frame identical.
 
+### The Windows driver
+
+`"driver": "windows"` profiles (`warband`; [PROFILES.md](PROFILES.md#drivers))
+play a Windows game on the real desktop of the machine that hosts WSL2:
+Mount&Blade: Warband and its modules, which run nowhere
+else. **The session takes over the owner's screen** (pointer, keyboard and
+the foreground window) for as long as it runs, so:
+
+- only one session at a time: `pt start` takes the desktop lock and a
+  second session is refused with the name of the one holding it; `pt stop`
+  releases it, and a lock left by a session whose relay has gone is taken
+  over. Run Windows-driver goals one after another, never in parallel;
+- tell the owner before starting one, and keep it short;
+- `pt start --attach` drives a copy of the game that is already open (as
+  it is, in whatever module) and `pt stop` leaves it open; without
+  `--attach`, `pt start` launches the game (`--module M` picks the module)
+  and `pt stop` closes it again;
+- `pt smoke --profile warband --attach --game-dir ...` checks the whole
+  path against an open game: it opens and closes the inventory with
+  screenshots.
+
+```bash
+G="/mnt/c/Program Files (x86)/Steam/steamapps/common/MountBlade Warband"
+PT_SESSION=wb1 pt start --profile warband --game-dir "$G" --attach
+PT_SESSION=wb1 pt shot map          # 1280x720, scaled from the real window
+PT_SESSION=wb1 pt key i             # the inventory
+PT_SESSION=wb1 pt click 733 673     # its Return button, in screenshot pixels
+PT_SESSION=wb1 pt events            # probe lines read off the screen (a test build), log errors after exit
+PT_SESSION=wb1 pt stop              # releases the desktop; the game stays open
+```
+
+If `pt start` says the Windows helper did not start, Windows interop from
+WSL is not answering: `cmd.exe /c echo hi` hangs too. The relay tries every
+interop socket in `/run/WSL` (one can wedge while the others work); a new
+WSL terminal gets a fresh one.
+
 ## Writing goals
 
 A goal is one sentence an agent can finish, fail or partly do inside its
