@@ -253,7 +253,7 @@
             "left",
             "right"
           ],
-          "description": "Which way state.json's player.yawDeg grows when the player turns"
+          "description": "Which way state.json's player.yawDeg grows as the view turns on screen (default left); face DEG (+ right) and face --to YAW use it"
         },
         "forward_key": {
           "type": "string"

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `pt face --to YAW`: turn the short way until `player.yawDeg` reads YAW, the game's own heading, so an agent can face a heading without working out which way the game's yaw grows
+- Tests pinning `face` to the bundled `beyond-nations` profile's conventions (right-handed world: A raises `yawDeg` and turns left, D lowers it and turns right; `face DEG` + is right on screen), replayed from yaw readings of a recorded playtest
 - `pt ghosts RUN...`: recorded sessions drawn as fading coloured trails over a ground sized to the runs, one colour a session, with markers where players died, stalled (`--stall-secs`, `--stall-radius`) and where each session ended; a still PNG, or a GIF or MP4 that replays the runs side by side. Rendered headless with the Strata engine through its Python binding, which stays optional (`playtester.ghosts`; docs/AGENT_PLAYTESTING.md#ghost-trails)
 - `track.jsonl` in each session: the player's `x` and `z` from `state.json`, appended whenever `pt` reads it, so a game with a probe has a track with no change to the game
 - Probe contract: any event may carry `x` and `z` (optional) to say where it happened
@@ -37,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pt start` warns when the game's build is older than the checkout's HEAD commit or an uncommitted edit to a tracked file, and records `dirty`, `builtAtMs` and `buildWarnings` in `session.json`; profile `build.artifact` names the built file to check (the `beyond-nations` profile names its `.dll`)
 
 ### Changed
+- `beyond-nations` profile goals for the game's 0.8.0: the Village era from day 2 (10 members, 2 buildings, 2 stalls), winter started late in autumn with `--season autumn --advance-ticks 25000`, the Trade at Market panel and appointed Traders, the Members tab, old age and abdication, and a second settlement with the Nations screen's Manage tab; the crafting goal moves to the end (seed 110)
+- `beyond-nations` agent notes say which way `yawDeg` grows and point at `face --to`; docs/AGENT_PLAYTESTING.md and docs/PROFILES.md say `face DEG` is relative to the screen, not to `yawDeg`
 - Relicensed from GPL-3.0 to MIT
 - `import playtester` no longer needs a display: the automation classes are loaded lazily on first use (`from playtester import GameAutomator` works as before)
 - Installing playtester no longer installs any Python packages: the agent playtest kit is standard-library Python. pillow, pyautogui and pynput, needed only by the experimental screenshot automation framework, moved to the `automation` extra (`pip install -e ".[automation]"`); using an automation class without it raises an `ImportError` that names the extra. The empty `headless` extra was removed

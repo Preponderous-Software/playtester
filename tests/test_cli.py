@@ -68,6 +68,18 @@ class CliTest(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("no key name in combo 'Shift_L+'", err)
 
+    def test_face_takes_degrees_or_a_heading(self):
+        with tempfile.TemporaryDirectory() as root, \
+                mock.patch("playtester.harness.probe.face", return_value={"ok": True}) as face:
+            env = {"PT_ROOT": root, "PT_SESSION": "s01"}
+            self.assertEqual(run("face", "-44", env=env)[0], 0)
+            face.assert_called_with(mock.ANY, -44.0)
+            self.assertEqual(run("face", "--to", "90", env=env)[0], 0)
+            face.assert_called_with(mock.ANY, 0.0, to=90.0)
+            code, _, err = run("face", "--to", env=env)
+        self.assertNotEqual(code, 0)
+        self.assertIn("usage: pt face --to YAW", err)
+
     def test_report_and_aggregate(self):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = os.path.join(tmp, "run")

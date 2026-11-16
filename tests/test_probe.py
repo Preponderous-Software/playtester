@@ -8,6 +8,7 @@ from unittest import mock
 
 import tests.helpers  # noqa: F401  (puts src on sys.path)
 from playtester.harness import probe
+from playtester.harness import profile as profiles
 from playtester.harness.session import Session
 
 MOVEMENT = {
@@ -362,6 +363,90 @@ class FaceTest(SessionTestCase):
             rows = [json.loads(line) for line in f]
         self.assertEqual([row["what"] for row in rows], ["face", "face"])
         self.assertEqual(rows[0]["remaining"], 90.0)
+
+    def test_to_turns_the_short_way_onto_a_heading(self):
+        game = SimulatedGame(movement(), yaw=10.0)
+        self.play(game)
+        r = probe.face(self.session, 999, to=80)
+        self.assertEqual({key for key, _ in game.holds}, {"d"})
+        self.assertTrue(r["ok"])
+        self.assertAlmostEqual(r["yawDeg"], 80, delta=8)
+
+    def test_to_crosses_the_seam_the_short_way(self):
+        game = SimulatedGame(movement(), yaw=350.0)
+        self.play(game)
+        r = probe.face(self.session, 0, to=20)
+        self.assertEqual({key for key, _ in game.holds}, {"d"})
+        self.assertTrue(r["ok"])
+        self.assertAlmostEqual(probe.normalise(r["yawDeg"] - 20), 0, delta=8)
+
+    def test_to_in_a_game_whose_yaw_grows_to_the_left(self):
+        # a rising yaw is a left turn there, so a larger heading is to the left
+        game = SimulatedGame(movement(yaw_increases="left"), yaw=10.0)
+        self.play(game)
+        r = probe.face(self.session, 0, to=80)
+        self.assertEqual({key for key, _ in game.holds}, {"a"})
+        self.assertTrue(r["ok"])
+        self.assertAlmostEqual(r["yawDeg"], 80, delta=8)
+
+    def test_to_when_already_on_the_heading_presses_nothing(self):
+        game = SimulatedGame(movement(), yaw=45.0)
+        self.play(game)
+        r = probe.face(self.session, 90, to=48)
+        self.assertEqual(game.holds, [])
+        self.assertEqual((r["ok"], r["turns"]), (True, 0))
+
+
+class BeyondNationsFaceTest(SessionTestCase):
+    """The bundled beyond-nations profile against the game's own conventions.
+
+    Beyond Nations draws a right-handed world: the player faces
+    (sin yaw, 0, cos yaw), A raises the yaw and turns the view left, D lowers
+    it and turns the view right, and a nearest bearing's + is to the right
+    (its PlaytestBearing). The sessions below are replayed from the
+    yaw readings of a recorded 0.8.0 playtest.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.mv = profiles.load("beyond-nations")["movement"]
+
+    def test_the_profile_says_yaw_grows_to_the_left_and_d_turns_right(self):
+        self.assertEqual(self.mv["yaw_increases"], "left")
+        self.assertEqual((self.mv["turn"]["left"], self.mv["turn"]["right"]), ("a", "d"))
+
+    def test_positive_turns_right_with_d_and_the_yaw_falls(self):
+        game = SimulatedGame(self.mv, yaw=134.0)
+        self.play(game)
+        r = probe.face(self.session, 44)
+        self.assertEqual({key for key, _ in game.holds}, {"d"})
+        self.assertTrue(r["ok"])
+        self.assertAlmostEqual(r["yawDeg"], 90, delta=8)
+
+    def test_negative_turns_left_with_a_and_the_yaw_rises(self):
+        # recorded: yawDeg 134, `pt face -44` -> yawDeg 174, a left turn
+        game = SimulatedGame(self.mv, yaw=134.0)
+        self.play(game)
+        r = probe.face(self.session, -44)
+        self.assertEqual({key for key, _ in game.holds}, {"a"})
+        self.assertTrue(r["ok"])
+        self.assertAlmostEqual(r["yawDeg"], 178, delta=8)
+
+    def test_to_a_heading_needs_no_sign_reasoning(self):
+        # yawDeg 90 is +X, which the game's compass calls east
+        game = SimulatedGame(self.mv, yaw=134.0)
+        self.play(game)
+        r = probe.face(self.session, 0, to=90)
+        self.assertEqual({key for key, _ in game.holds}, {"d"})
+        self.assertTrue(r["ok"])
+        self.assertAlmostEqual(r["yawDeg"], 90, delta=8)
+
+    def test_facing_a_nearest_bearing_brings_it_ahead(self):
+        game = SimulatedGame(self.mv, yaw=0.0, targets=[{"name": "tree", "distance": 21.2, "bearing": -135.0}])
+        self.play(game)
+        self.assertTrue(probe.face(self.session, -135.0)["ok"])
+        self.assertLess(abs(game.targets[0]["bearing"]), 8)
+        self.assertAlmostEqual(game.yaw, 135, delta=8)
 
 
 class WalktoTest(SessionTestCase):

@@ -95,7 +95,8 @@ scripted session. It runs in a session of its own (`smoke-<pid>`, or
 | `shot NAME` | the game's window to `shots/NAME.png`; prints the path |
 | `note [--shot NAME] TEXT` | append to `findings.jsonl` |
 | `state [--full]`, `events [N]`, `await SCREEN [SECS]` | read the probe |
-| `face DEG` | turn DEG degrees (+ right) with the profile's turn keys (or mouse), re-reading the heading until within tolerance |
+| `face DEG` | turn DEG degrees (+ right on screen, - left) with the profile's turn keys (or mouse), re-reading the heading until within tolerance |
+| `face --to YAW` | turn the short way until `player.yawDeg` reads YAW, the game's own heading; no need to know which way the game's yaw grows |
 | `walkto KIND [MAXSEC]` | the nearest KIND in `state.json`'s `nearest`: face it, walk in bursts sized from the distance, re-face, stop within `stop_distance`; reports when stuck |
 | `probe-check [DIR]` | validate probe output against the contract |
 | `report` | validate the session's `report.json` |
@@ -108,6 +109,12 @@ scripted session. It runs in a session of its own (`smoke-<pid>`, or
 mouse: a key held for a time turns by the same amount at any frame rate, while
 a drag's turn depends on how the motion was split between frames, and
 relative pointer motion in a virtual X server is clamped at the window's edge.
+
+`face DEG` is relative to the screen, never to `yawDeg`: + always turns right,
+whichever way the game's yaw grows (the profile's `movement.yaw_increases`).
+In a game whose yaw grows to the left, `face 30` lowers `yawDeg` by about 30.
+To face a heading read from `state` (or from a compass the game names in
+`yawDeg` terms), use `face --to YAW` instead of working out the sign.
 
 ### Why Python, not a shell script
 

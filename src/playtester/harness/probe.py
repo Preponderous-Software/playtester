@@ -201,8 +201,13 @@ def world_screen(st: Optional[Dict[str, Any]], profile: Dict[str, Any]) -> bool:
 
 
 def face(session: Session, relative: float, tolerance: Optional[float] = None, attempts: int = 8,
-         inp: _Any = None) -> Dict[str, Any]:
-    """Turns by ``relative`` degrees (+ right), re-reading the yaw after each turn."""
+         inp: _Any = None, to: Optional[float] = None) -> Dict[str, Any]:
+    """Turns by ``relative`` degrees (+ right), re-reading the yaw after each turn.
+
+    With ``to``, ``relative`` is ignored and the player turns, the short way
+    round, until ``player.yawDeg`` reads ``to``: a heading in the game's own
+    yaw, whichever way it grows (the profile's ``movement.yaw_increases``).
+    """
     profile = need_probe(session)
     movement = profile.get("movement")
     if not movement:
@@ -212,7 +217,10 @@ def face(session: Session, relative: float, tolerance: Optional[float] = None, a
     st = fresh_state(session, now_ms(), inp=inp)
     if not world_screen(st, profile) or not isinstance(st.get("player"), dict):
         return {"ok": False, "error": "not in the world", "screen": st and st.get("screen")}
-    target = _clockwise(st["player"]["yawDeg"], movement) + relative
+    if to is None:
+        target = _clockwise(st["player"]["yawDeg"], movement) + relative
+    else:
+        target = _clockwise(to, movement)
     remaining = 0.0
     for attempt in range(attempts):
         remaining = normalise(target - _clockwise(st["player"]["yawDeg"], movement))
