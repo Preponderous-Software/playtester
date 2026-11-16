@@ -69,7 +69,7 @@ share them), `{probe_dir}` (`<session>/out`), `{width}`, `{height}`,
 | Field | |
 | --- | --- |
 | `turn` | `{"method": "keys", "left": "a", "right": "d", "degrees_per_second": 100}` or `{"method": "mouse", "pixels_per_degree": 7}`. Keys are better when the game has them: a key held for a time turns by the same amount at any frame rate, while relative mouse motion through a virtual X server is clamped at the window's edge |
-| `yaw_increases` | `left` or `right`: which way `player.yawDeg` grows |
+| `yaw_increases` | `left` or `right`: which way `player.yawDeg` grows as the view turns on screen (default `left`). A right-handed world seen from above with Y up, whose forward is `(sin yaw, 0, cos yaw)`, is usually `left`; check by holding the turn-right key and watching `yawDeg`. `face DEG` and `face --to YAW` use it, so `face` turns the right way however the game counts |
 | `forward_key` | Default `w` |
 | `speed_field`, `default_speed` | The player field with the walking speed, and the speed if it is missing |
 | `interact_key`, `interact_range` | Shown in `walkto`'s result |

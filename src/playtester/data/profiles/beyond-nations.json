@@ -66,15 +66,16 @@
   },
   "goals": [
     {"goal": "Play the first 10 minutes as a brand-new player who has never seen the game; note every moment of confusion.", "budget_min": 30, "seed": 101},
-    {"goal": "Reach the Village era as fast as you can (it cannot come before day 3, about 17 minutes of game time); record the game time of every objective.", "budget_min": 60, "seed": 102},
-    {"goal": "Survive the first winter. Start with `--season autumn` (a fresh world otherwise reaches winter only after about 57 minutes of game time). Note how food and cold feel.", "budget_min": 60, "seed": 103, "args": ["--season", "autumn"]},
+    {"goal": "Reach the Village era as fast as you can. It can come from day 2 (about 7 minutes of game time) once your nation has 10 members, 2 buildings and 2 market stalls; recruit and court pawns and build houses. Record the game time each Village requirement was met, what held you back, and whether the wait felt meaningful.", "budget_min": 60, "seed": 102},
+    {"goal": "Survive the first winter as a prepared ruler. The game starts late in autumn (`--season autumn --advance-ticks 25000`), so winter comes in under 15 minutes of game time. Watch the winter warning and the Season box food count, store food before winter (trees give no apples in winter), and use Feed Residents and Eat. Record how many members die, whether the warning was clear and early enough, and whether preparing visibly helped.", "budget_min": 60, "seed": 103, "args": ["--season", "autumn", "--advance-ticks", "25000"]},
     {"goal": "Diplomacy and war: lead a nation, meet a neighbour, try alliance, rivalry and war from the Nations screen (O).", "budget_min": 30, "seed": 104},
-    {"goal": "Trade and caravans: build a market stall, buy and sell, get a Storehouse and send a caravan.", "budget_min": 30, "seed": 105},
-    {"goal": "Ruler, laws and heirs: lead a nation, enact and repeal laws, and see what happens when the ruler dies.", "budget_min": 30, "seed": 106},
-    {"goal": "Crafting: find and use every recipe on the crafting screen (C); are tools worth making?", "budget_min": 30, "seed": 107},
+    {"goal": "Trade: use the Trade at Market panel to buy and sell chosen quantities (check the profit/loss lines and receipts), appoint a Trader from your nation (Appoint ... Trader on the command bar beside a member; it takes a stake of coins) and watch whether traders carry goods between markets, then build a Storehouse and send a caravan. Judge whether selling pays and whether prices make sense over time.", "budget_min": 45, "seed": 105},
+    {"goal": "Ruling: lead a nation, enact and repeal laws, check the Members tab (loyalty, traits, who is heir), watch for the 'growing old' warning, then either abdicate from the Laws tab or let the ruler die of old age (about 40 minutes into a reign). Record whether succession is clear and what the heir inherits.", "budget_min": 60, "seed": 106},
+    {"goal": "Settlements: found a first settlement, then a second one (later settlements cost more wood and stone; Found Settlement on the command bar says what you lack). Open the settlement screen, give a settlement to a member and take it back, and use the Nations screen's Manage tab (rename the nation, list settlements). Record anything confusing about costs, ownership or which settlement is home.", "budget_min": 45, "seed": 107},
     {"goal": "World events: play until world events are offered, take different choices, and judge whether the consequences are clear and fair.", "budget_min": 30, "seed": 108},
     {"goal": "Accessibility and text audit, touching only what a mouse-and-keyboard player would: every screen and panel; cut-off, overlapping, unclear or misspelled text; contrast; anything only explained on hover.", "budget_min": 30, "seed": 109},
-    {"goal": "Save/load and share-seed round trip: save from the pause menu, stop, `pt start --continue`, confirm the world is identical; then start a new world from the seed shown on the Share screen and confirm it matches.", "budget_min": 30, "seed": "Ironvale"}
+    {"goal": "Save/load and share-seed round trip: save from the pause menu, stop, `pt start --continue`, confirm the world is identical; then start a new world from the seed shown on the Share screen and confirm it matches.", "budget_min": 30, "seed": "Ironvale"},
+    {"goal": "Crafting: find and use every recipe on the crafting screen (C); are tools worth making?", "budget_min": 30, "seed": 110}
   ],
   "evidence_dir": "docs/playtests"
 }

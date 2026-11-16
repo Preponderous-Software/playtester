@@ -35,6 +35,7 @@ Probe commands (games with a probe; docs/PROBE_CONTRACT.md)
   events [N]                the last N lines of events.jsonl (default 20)
   await SCREEN [SECS]       wait until state.json shows SCREEN; fails after SECS (default 15)
   face DEG                  turn DEG degrees (+ right, - left), closed loop
+  face --to YAW             turn the short way until player.yawDeg reads YAW (the game's own heading)
   walkto KIND [MAXSEC]      walk to the nearest KIND until it is within reach
   probe-check [DIR]         validate state.json and events.jsonl against the probe contract
 Run commands
@@ -232,8 +233,12 @@ def run_session_command(session: Session, cmd: str, args: List[str]) -> int:
         out(result)
         return 0 if result["ok"] else 1
     elif cmd == "face":
-        _need(args, 1, "face DEG")
-        result = probe.face(session, float(args[0]))
+        _need(args, 1, "face DEG | face --to YAW")
+        if args[0] == "--to":
+            _need(args, 2, "face --to YAW")
+            result = probe.face(session, 0.0, to=float(args[1]))
+        else:
+            result = probe.face(session, float(args[0]))
         out(result)
         return 0 if result.get("ok") else 1
     elif cmd == "walkto":

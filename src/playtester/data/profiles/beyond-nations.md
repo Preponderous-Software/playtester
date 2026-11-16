@@ -14,6 +14,13 @@ pause menu (Save, Load, Share, Main Menu).
 
 Practical notes:
 
+- Turning: `pt face DEG` turns DEG degrees on screen: positive is right
+  (D), negative is left (A). `yawDeg` in `pt state` is not a clockwise
+  compass bearing: the world is right-handed, so it **grows as you turn
+  left** and falls as you turn right. `yawDeg` 0 faces +Z (the game's north) and 90 faces +X
+  (its east). To face a heading, use `pt face --to YAW` (for example
+  `pt face --to 90`) rather than working out the sign; a `nearest` bearing
+  is already relative, + right, so `pt face BEARING` faces that thing.
 - `pt walkto` knows `tree`, `rock`, `pawn`, `chicken`, `settlement` and
   `stall`, and stops within reach (interact range 5); then press `e`.
 - Interact acts on the nearest thing within 5 units, in this order:
