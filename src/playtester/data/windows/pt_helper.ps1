@@ -312,7 +312,10 @@ function Handle($r) {
             if (-not (KeyAllowed ([string]$r.key))) { return Refused 'the profile does not name this registry key' }
             $v = Get-ItemProperty -Path ([string]$r.key) -Name ([string]$r.name) -ErrorAction SilentlyContinue
             if ($null -eq $v) { return @{ ok = $true; exists = $false; value = $null } }
-            return @{ ok = $true; exists = $true; value = [string]$v.([string]$r.name) }
+            # the value's kind (String, DWord, ExpandString, Binary, ...): pt sets only kinds it can put back exactly
+            $kind = $null
+            try { $kind = [string](Get-Item -Path ([string]$r.key)).GetValueKind([string]$r.name) } catch { }
+            return @{ ok = $true; exists = $true; value = [string]$v.([string]$r.name); kind = $kind }
         }
         'regset' {
             if (-not (KeyAllowed ([string]$r.key))) { return Refused 'the profile does not name this registry key' }

@@ -204,8 +204,13 @@ def start(session: Any, profile: Dict[str, Any], game_dir: str, extra_args: List
                 if running:
                     raise HarnessError("%s is already running (pid %s): pt start --attach drives that copy; pt will "
                                        "not start a second one or close it" % (win["process"], running[0]["pid"]))
-                info["registryRestore"] = (info.get("registryRestore") or []) + _set_registry(ch, win.get("registry") or [])
-                _write_info(session, info)
+                restore = info.setdefault("registryRestore", [])
+
+                def remember(entry: Dict[str, Any]) -> None:
+                    # saved before the value is changed, so a failure part way (or a crash) still puts it back
+                    restore.append(entry)
+                    _write_info(session, info)
+                _set_registry(ch, win.get("registry") or [], remember)
                 if log_path and os.path.exists(log_path):
                     # the game starts its log again; keep the old one with the session
                     shutil.copyfile(log_path, session.path("log-before-start.txt"))
@@ -261,19 +266,39 @@ def _restore_registry(ch: Channel, entries: List[Dict[str, Any]]) -> List[Dict[s
     return left
 
 
-def _set_registry(ch: Channel, entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Sets each ``{key, name, value}`` that differs; returns what to put back at stop."""
-    restore = []
+# Registry value kinds whose text form (what the helper reads and writes back) is the value itself.
+# ExpandString reads back expanded, and binary or multi-string values do not survive as text.
+RESTORABLE_KINDS = ("String", "DWord", "QWord")
+
+
+def _set_registry(ch: Channel, entries: List[Dict[str, Any]], remember: Any = None) -> List[Dict[str, Any]]:
+    """Sets each ``{key, name, value}`` that differs; returns what to put back at stop.
+
+    Each entry to put back is passed to ``remember`` before its value is changed, so a request
+    that fails part way (or a crash) still leaves it recorded. A value of a kind pt could not
+    put back exactly (``RESTORABLE_KINDS``) is refused before anything is changed."""
+    HarnessError = _errors()
+    todo = []
     for entry in entries:
         if entry.get("value") is None or "{" in str(entry.get("value")):
             continue  # a placeholder with nothing to fill it (no module chosen)
         key = windows_driver.registry_path(entry["key"])
         now = ch.request("regget", key=key, name=entry["name"])
+        kind = now.get("kind")
+        if now.get("exists") and kind and kind not in RESTORABLE_KINDS:
+            raise HarnessError("registry value %s\\%s is %s; pt sets only %s values, which it can put back "
+                               "exactly" % (key, entry["name"], kind, ", ".join(RESTORABLE_KINDS)))
         if now.get("exists") and now.get("value") == str(entry["value"]):
             continue
+        todo.append((key, entry, now))
+    restore = []
+    for key, entry, now in todo:
+        back = {"key": key, "name": entry["name"], "existed": bool(now.get("exists")),
+                "value": now.get("value"), "set": str(entry["value"])}
+        restore.append(back)
+        if remember:
+            remember(back)
         ch.request("regset", key=key, name=entry["name"], value=str(entry["value"]))
-        restore.append({"key": key, "name": entry["name"], "existed": bool(now.get("exists")),
-                        "value": now.get("value"), "set": str(entry["value"])})
     return restore
 
 

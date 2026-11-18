@@ -326,6 +326,61 @@ class LogProbeTest(unittest.TestCase):
             os.unlink(f.name)
 
 
+class RegistrySetTest(unittest.TestCase):
+    """windows_session._set_registry against a stub channel: what is recorded to put back, and when."""
+
+    class Stub:
+        def __init__(self, values, kinds=None, fail_set=None):
+            self.values, self.kinds, self.fail_set, self.sent = dict(values), dict(kinds or {}), fail_set, []
+
+        def request(self, op, **f):
+            from playtester.harness.strata_driver import DriveError
+            self.sent.append((op, f.get("name")))
+            if op == "regget":
+                reply = {"ok": True, "exists": f["name"] in self.values, "value": self.values.get(f["name"])}
+                if f["name"] in self.kinds:
+                    reply["kind"] = self.kinds[f["name"]]
+                return reply
+            if op == "regset":
+                if f["name"] == self.fail_set:
+                    raise DriveError("the Windows helper did not answer")
+                self.values[f["name"]] = f["value"]
+            return {"ok": True}
+
+    ENTRIES = [{"key": "HKCU\\Software\\G", "name": "a", "value": "1"},
+               {"key": "HKCU\\Software\\G", "name": "b", "value": "2"}]
+
+    def test_each_value_is_remembered_before_it_is_changed(self):
+        from playtester.harness.strata_driver import DriveError
+        ch = self.Stub({"a": "old", "b": "old"}, fail_set="b")
+        remembered = []
+
+        def remember(entry):
+            # nothing has been set yet for the entry being remembered
+            self.assertEqual(ch.values[entry["name"]], "old")
+            remembered.append(entry)
+        with self.assertRaises(DriveError):
+            windows_session._set_registry(ch, self.ENTRIES, remember)
+        # "a" was changed and "b" may have been: both are on the list to put back
+        self.assertEqual([(e["name"], e["value"], e["existed"]) for e in remembered],
+                         [("a", "old", True), ("b", "old", True)])
+        self.assertEqual(ch.values["a"], "1")
+        ch.fail_set = None  # the helper answers again (the next pt stop or pt start)
+        left = windows_session._restore_registry(ch, remembered)
+        self.assertEqual(left, [])
+        self.assertEqual(ch.values, {"a": "old", "b": "old"})
+
+    def test_a_value_pt_could_not_put_back_exactly_is_refused_before_anything_changes(self):
+        from playtester.harness.session import HarnessError
+        ch = self.Stub({"a": "old", "b": "%USERPROFILE%"}, kinds={"a": "String", "b": "ExpandString"})
+        with self.assertRaises(HarnessError) as e:
+            windows_session._set_registry(ch, self.ENTRIES, lambda entry: None)
+        self.assertIn("ExpandString", str(e.exception))
+        self.assertNotIn("regset", [op for op, _ in ch.sent])
+        ch = self.Stub({"a": "0"}, kinds={"a": "DWord"})
+        self.assertEqual(len(windows_session._set_registry(ch, self.ENTRIES[:1])), 1)
+
+
 class ProfileTest(unittest.TestCase):
     def test_the_warband_profile(self):
         p = profiles.load("warband")
