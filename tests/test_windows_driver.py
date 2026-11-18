@@ -200,6 +200,32 @@ class DesktopLockTest(unittest.TestCase):
             f.write("{not json")
         windows_driver.acquire_lock("s03", "/runs/a", os.getpid(), self.path)
 
+    def test_sessions_racing_for_a_stale_lock_get_one_winner(self):
+        import threading
+        dead = subprocess.Popen([sys.executable, "-c", "pass"])
+        dead.wait()
+        for _ in range(20):
+            with open(self.path, "w") as f:
+                json.dump({"session": "old", "root": "/r", "pid": dead.pid, "pidStart": "1"}, f)
+            start = threading.Barrier(8)
+            won, lost = [], []
+
+            def take(name):
+                start.wait()
+                try:
+                    windows_driver.acquire_lock(name, "/runs/a", os.getpid(), self.path)
+                    won.append(name)
+                except windows_driver.DesktopLockError:
+                    lost.append(name)
+            threads = [threading.Thread(target=take, args=("s%02d" % i,)) for i in range(8)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+            self.assertEqual(len(won), 1, won)
+            self.assertEqual(windows_driver.read_lock(self.path)["session"], won[0])
+            os.remove(self.path)
+
     def test_release_only_removes_our_own_lock(self):
         windows_driver.acquire_lock("s01", "/runs/a", os.getpid(), self.path)
         self.assertFalse(windows_driver.release_lock("s02", "/runs/a", self.path))

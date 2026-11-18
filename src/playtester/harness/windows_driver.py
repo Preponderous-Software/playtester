@@ -32,6 +32,8 @@ How a session runs:
    never closes a game it attached to.
 """
 
+import contextlib
+import fcntl
 import glob
 import json
 import os
@@ -224,6 +226,24 @@ def lock_path() -> str:
     return os.environ.get("PT_WINDOWS_LOCK") or DEFAULT_LOCK
 
 
+@contextlib.contextmanager
+def _lock_guard(path: str) -> Any:
+    """Holds an exclusive ``flock`` on ``<lock>.guard`` while the lock file is read and changed.
+
+    Without it, two sessions that both find a stale lock could each remove it
+    and create their own (the second removing the first's new lock), and a
+    session could read a lock another has created but not yet written (an
+    empty file, which reads as damaged) and remove it. The guard file itself is
+    left in place: removing it would let a waiter lock a file no longer there.
+    """
+    fd = os.open(path + ".guard", os.O_RDWR | os.O_CREAT, 0o644)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(fd)
+
+
 def read_lock(path: Optional[str] = None) -> Optional[Dict[str, Any]]:
     try:
         with open(path or lock_path(), encoding="utf-8") as f:
@@ -264,26 +284,27 @@ def acquire_lock(session: str, root: str, pid: int, path: Optional[str] = None) 
     path = path or lock_path()
     me = {"session": session, "root": root, "pid": pid, "pidStart": proc_start_time(pid),
           "startedAtMs": int(time.time() * 1000), "host": socket.gethostname()}
-    for _ in range(5):
-        try:
-            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
-        except FileExistsError:
-            holder = read_lock(path)
-            if holder is None:
-                continue  # removed meanwhile
-            mine = holder.get("session") == session and holder.get("root") == root
-            if lock_is_live(holder) and not mine:
-                raise DesktopLockError(
-                    "the Windows desktop is being driven by %s; only one session may drive it at a time "
-                    "(pt stop that session first; the lock is %s)" % (describe_holder(holder), path))
+    with _lock_guard(path):
+        for _ in range(5):
             try:
-                os.remove(path)
-            except OSError:
-                pass
-            continue
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(me, f)
-        return me
+                fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+            except FileExistsError:
+                holder = read_lock(path)
+                if holder is None:
+                    continue  # removed meanwhile
+                mine = holder.get("session") == session and holder.get("root") == root
+                if lock_is_live(holder) and not mine:
+                    raise DesktopLockError(
+                        "the Windows desktop is being driven by %s; only one session may drive it at a time "
+                        "(pt stop that session first; the lock is %s)" % (describe_holder(holder), path))
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+                continue
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(me, f)
+            return me
     raise DesktopLockError("could not take the desktop lock %s" % path)
 
 
@@ -291,29 +312,31 @@ def update_lock(session: str, root: str, pid: int, path: Optional[str] = None) -
     """Points our lock at ``pid`` (the relay, which lives as long as the session)."""
     from .session import proc_start_time
     path = path or lock_path()
-    holder = read_lock(path) or {}
-    if holder.get("session") != session or holder.get("root") != root:
-        return
-    holder.update({"pid": pid, "pidStart": proc_start_time(pid)})
-    tmp = path + ".%d.tmp" % os.getpid()
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(holder, f)
-    os.replace(tmp, path)
+    with _lock_guard(path):
+        holder = read_lock(path) or {}
+        if holder.get("session") != session or holder.get("root") != root:
+            return
+        holder.update({"pid": pid, "pidStart": proc_start_time(pid)})
+        tmp = path + ".%d.tmp" % os.getpid()
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(holder, f)
+        os.replace(tmp, path)
 
 
 def release_lock(session: str, root: str, path: Optional[str] = None) -> bool:
     """Removes the lock if this session holds it; returns whether it did."""
     path = path or lock_path()
-    holder = read_lock(path)
-    if holder is None:
-        return False
-    if holder and (holder.get("session") != session or holder.get("root") != root):
-        return False
-    try:
-        os.remove(path)
-        return True
-    except OSError:
-        return False
+    with _lock_guard(path):
+        holder = read_lock(path)
+        if holder is None:
+            return False
+        if holder and (holder.get("session") != session or holder.get("root") != root):
+            return False
+        try:
+            os.remove(path)
+            return True
+        except OSError:
+            return False
 
 
 # --- coordinates ----------------------------------------------------------------
