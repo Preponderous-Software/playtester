@@ -200,6 +200,12 @@ def world_screen(st: Optional[Dict[str, Any]], profile: Dict[str, Any]) -> bool:
     return bool(st) and st.get("screen") in screens
 
 
+#: Turns in a row that leave the yaw where it was before ``face`` gives up.
+NOT_TURNING_LIMIT = 3
+NOT_TURNING_HINT = ("the player is not turning: a screen or panel may be open; take a screenshot, "
+                    "close it and retry")
+
+
 def face(session: Session, relative: float, tolerance: Optional[float] = None, attempts: int = 8,
          inp: _Any = None, to: Optional[float] = None) -> Dict[str, Any]:
     """Turns by ``relative`` degrees (+ right), re-reading the yaw after each turn.
@@ -207,6 +213,10 @@ def face(session: Session, relative: float, tolerance: Optional[float] = None, a
     With ``to``, ``relative`` is ignored and the player turns, the short way
     round, until ``player.yawDeg`` reads ``to``: a heading in the game's own
     yaw, whichever way it grows (the profile's ``movement.yaw_increases``).
+
+    After ``NOT_TURNING_LIMIT`` turns in a row that leave the yaw where it
+    was, it gives up with the error ``not turning`` and a hint, rather than
+    spending its remaining attempts on a player that cannot turn.
     """
     profile = need_probe(session)
     movement = profile.get("movement")
@@ -222,15 +232,21 @@ def face(session: Session, relative: float, tolerance: Optional[float] = None, a
     else:
         target = _clockwise(to, movement)
     remaining = 0.0
+    unmoved = 0
     for attempt in range(attempts):
         remaining = normalise(target - _clockwise(st["player"]["yawDeg"], movement))
         if abs(remaining) <= tolerance:
             return {"ok": True, "yawDeg": st["player"]["yawDeg"], "offBy": round(-remaining, 1), "turns": attempt}
         if not world_screen(st, profile):
             return {"ok": False, "error": "left the world", "screen": st.get("screen")}
+        if unmoved >= NOT_TURNING_LIMIT:
+            return {"ok": False, "error": "not turning", "yawDeg": st["player"]["yawDeg"],
+                    "offBy": round(-remaining, 1), "turns": attempt, "hint": NOT_TURNING_HINT}
         _trace(session, "face", yawDeg=st["player"]["yawDeg"], remaining=round(remaining, 1), fps=st.get("fps"))
         _turn(session, inp, movement, remaining)
+        before = st["player"]["yawDeg"]
         st = fresh_state(session, now_ms() + 30, inp=inp) or st
+        unmoved = unmoved + 1 if abs(normalise(st["player"]["yawDeg"] - before)) < 0.5 else 0
     remaining = normalise(target - _clockwise(st["player"]["yawDeg"], movement))
     return {"ok": abs(remaining) <= tolerance, "yawDeg": st["player"]["yawDeg"], "offBy": round(-remaining, 1),
             "turns": attempts}
@@ -288,7 +304,10 @@ def walkto(session: Session, kind: str, max_seconds: float = 60.0) -> Dict[str, 
             stalls = 0 if walked else stalls
         walked = False
         if abs(t["bearing"]) > 10.0:
-            face(session, t["bearing"], tolerance=6.0, attempts=5, inp=inp)
+            turned = face(session, t["bearing"], tolerance=6.0, attempts=5, inp=inp)
+            if turned.get("error") == "not turning":
+                return {"ok": False, "error": "not turning", "kind": kind, "distance": t["distance"],
+                        "bearing": t["bearing"], "yawDeg": turned["yawDeg"], "hint": turned["hint"]}
             continue
         speed = player.get(movement.get("speed_field", "speed")) or movement.get("default_speed", 4.0)
         inp.hold(forward, min(1.0, max(0.05, (t["distance"] - stop + 0.4 * stop) / float(speed))))

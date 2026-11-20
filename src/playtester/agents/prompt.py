@@ -28,6 +28,7 @@ PROBE_COMMANDS = """| `pt state` | compact state from the game's probe: screen, 
 | `pt events 20` | the last 20 game events (objectives completed, screens, deaths, saves...) |
 | `pt await SCREEN 20` | wait until the game shows that screen ({SCREENS}) |
 | `pt face DEG` | turn DEG degrees, + right / - left, closed loop |
+| `pt face --to YAW` | turn the short way until the heading (`yawDeg` in `pt state`) reads YAW |
 {WALKTO}"""
 
 WALKTO = "| `pt walkto KIND [60]` | walk to the nearest {KINDS} until it is within reach, then stop{INTERACT} |\n"

@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `sisyphus-strata` agent notes follow Sisyphus 0.2.0 and 0.3.0: the game starts in first person, V is a view from straight behind, F (held) refactors and Tab shows the climb history, with notes on module dependencies, stamina, cairns, contributors, the rewrite at the summit and the weather
 
 ### Fixed
+- `pt face` and `pt walkto` give up with `not turning` and a hint once three turns in a row leave `yawDeg` unchanged (a screen or panel open), instead of `walkto` retrying until its time runs out
+- The agent prompt's probe command table lists `pt face --to YAW`, so agents playtesting any probe game are told about it, not only those reading the Beyond Nations notes
 - `GameAutomator.run_continuous(max_cycles=0)`, and so `RoamAutomator.start(max_cycles=0)` and `OphidianAutomator.start(max_cycles=0)`, run no cycles; `0` used to be treated like `None` and the loop ran without limit. Only `None` means no limit
 - `pt key` and `pt hold`: a `+` at the end of a combo is the plus key (`Control_L++` used to press Control alone and report success), on both drivers; any other combo with a key missing (`Shift_L+`, `+w`, an empty combo) is refused before a key goes down
 - `pt walkto` no longer reports `stuck: not getting closer` for a `nearest` entry with no `id` while the distance is falling; without an `id`, a jump in distance of more than `stop_distance` counts as a new target

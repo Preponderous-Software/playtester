@@ -97,7 +97,7 @@ scripted session. It runs in a session of its own (`smoke-<pid>`, or
 | `state [--full]`, `events [N]`, `await SCREEN [SECS]` | read the probe |
 | `face DEG` | turn DEG degrees (+ right on screen, - left) with the profile's turn keys (or mouse), re-reading the heading until within tolerance |
 | `face --to YAW` | turn the short way until `player.yawDeg` reads YAW, the game's own heading; no need to know which way the game's yaw grows |
-| `walkto KIND [MAXSEC]` | the nearest KIND in `state.json`'s `nearest`: face it, walk in bursts sized from the distance, re-face, stop within `stop_distance`; reports when stuck |
+| `walkto KIND [MAXSEC]` | the nearest KIND in `state.json`'s `nearest`: face it, walk in bursts sized from the distance, re-face, stop within `stop_distance`; reports when stuck or when the player is not turning |
 | `probe-check [DIR]` | validate probe output against the contract |
 | `report` | validate the session's `report.json` |
 | `wait SECS` | let SECS of game time pass (a stepped clock runs SECS / step frames) |
@@ -362,6 +362,9 @@ release time if the release turns out to be a different version.
 - **`walkto` says stuck** -- something is in the way, or the target keeps
   changing. Look at a screenshot, `face 45`, walk a little and retry;
   `trace.jsonl` has every step it took.
+- **`face` or `walkto` says not turning** -- three turns in a row left
+  `yawDeg` where it was, so the player cannot turn: a screen or panel is
+  probably open. Take a screenshot, close it and retry.
 - **Something is still running afterwards** -- `pt stop` for each session;
   then `pgrep -a Xvfb` and `pgrep -af <process_name>`. Do not `pkill -f` a
   pattern your own shell's command line also contains.

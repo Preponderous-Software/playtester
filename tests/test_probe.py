@@ -329,6 +329,25 @@ class FaceTest(SessionTestCase):
         self.assertEqual(len(game.holds), 3)
         self.assertEqual((r["ok"], r["turns"], r["offBy"]), (False, 3, -90.0))
 
+    def test_a_player_who_never_turns_is_given_up_on_after_three_turns(self):
+        game = SimulatedGame(movement(), yaw=48.0, turn_works=False)
+        self.play(game)
+        r = probe.face(self.session, 90, attempts=8)
+        self.assertEqual(len(game.holds), probe.NOT_TURNING_LIMIT)
+        self.assertEqual((r["ok"], r["error"], r["yawDeg"], r["turns"]), (False, "not turning", 48.0, 3))
+        self.assertIn("panel may be open", r["hint"])
+
+    def test_turns_that_move_the_yaw_are_not_counted_as_not_turning(self):
+        class SlowTurningGame(SimulatedGame):
+            def _turned(self, degrees_right):
+                self.yaw += 2.0 if degrees_right > 0 else -2.0
+
+        game = SlowTurningGame(movement())
+        self.play(game)
+        r = probe.face(self.session, 90, attempts=8)
+        self.assertNotIn("error", r)
+        self.assertEqual(len(game.holds), 8)
+
     def test_outside_the_world_it_does_not_turn(self):
         game = SimulatedGame(movement())
         game.screen = "TITLE"
@@ -547,6 +566,15 @@ class WalktoTest(SessionTestCase):
         self.assertEqual((r["ok"], r["kind"], r["distance"]), (False, "tree", 10.0))
         self.assertIn("hint", r)
         self.assertEqual(len(game.holds), 4)
+
+    def test_a_player_who_cannot_turn_stops_the_walk_at_once(self):
+        game = SimulatedGame(movement(), yaw=48.0, targets=[self.tree(bearing=90.0)], turn_works=False)
+        self.play(game)
+        r = probe.walkto(self.session, "tree")
+        self.assertEqual((r["ok"], r["error"], r["kind"], r["bearing"], r["yawDeg"]),
+                         (False, "not turning", "tree", 90.0, 48.0))
+        self.assertIn("panel may be open", r["hint"])
+        self.assertEqual(len(game.holds), probe.NOT_TURNING_LIMIT)
 
     def test_slow_progress_is_not_a_stall(self):
         game = SimulatedGame(movement(), targets=[self.tree()], stride=0.2)
