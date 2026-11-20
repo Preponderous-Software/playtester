@@ -88,9 +88,13 @@ class PromptTest(unittest.TestCase):
         self.assertIn("`pt walkto KIND [60]`", bn)
         self.assertIn("ticks / 50 = seconds", bn)
         self.assertIn("F1-F6", bn)
+        demo = fill(profiles.load("demo"), "g", "s01", "/r", "1")
+        self.assertIn("| `pt face DEG` |", demo)
+        self.assertIn("| `pt face --to YAW` |", demo)
         plain = dict(profiles.load("demo"), probe=None, movement=None)
         text = fill(plain, "g", "s01", "/r", None)
         self.assertNotIn("`pt walkto KIND", text)
+        self.assertNotIn("`pt face --to YAW`", text)
         self.assertIn("This game has no probe", text)
         self.assertIn('"seed": null', text)
 
