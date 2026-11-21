@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pt start` warns when the game's build is older than the checkout's HEAD commit or an uncommitted edit to a tracked file, and records `dirty`, `builtAtMs` and `buildWarnings` in `session.json`; profile `build.artifact` names the built file to check (the `beyond-nations` profile names its `.dll`)
 
 ### Changed
+- The package metadata moved from `setup.py` to `pyproject.toml` (`[project]`); `setup.py` is gone. The built wheel holds the same files, entry points and requirements, and the version stays in `pyproject.toml` and `playtester.__version__`
 - `beyond-nations` profile goals for the game's 0.8.0: the Village era from day 2 (10 members, 2 buildings, 2 stalls), winter started late in autumn with `--season autumn --advance-ticks 25000`, the Trade at Market panel and appointed Traders, the Members tab, old age and abdication, and a second settlement with the Nations screen's Manage tab; the crafting goal moves to the end (seed 110)
 - `beyond-nations` agent notes say which way `yawDeg` grows and point at `face --to`; docs/AGENT_PLAYTESTING.md and docs/PROFILES.md say `face DEG` is relative to the screen, not to `yawDeg`
 - Relicensed from GPL-3.0 to MIT

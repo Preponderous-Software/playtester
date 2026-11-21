@@ -20,11 +20,12 @@ Playtester has two independent parts:
 
 ## Technology stack
 
-- Python >= 3.8 (`setup.py` `python_requires`; CI pins 3.8)
-- No runtime dependencies (`install_requires=[]`): the agent kit is standard-library Python
+- Python >= 3.8 (`pyproject.toml` `requires-python`; CI pins 3.8)
+- No runtime dependencies (`dependencies = []`): the agent kit is standard-library Python
 - The `automation` extra: `pillow>=10.0.0`, `pyautogui>=0.9.54`, `pynput>=1.7.6`
-  (`setup.py` `extras_require["automation"]`, mirrored in `requirements.txt`)
-- setuptools (`pyproject.toml` `[build-system]`, metadata in `setup.py`), `src/` layout (`package_dir={"": "src"}`)
+  (`pyproject.toml` `[project.optional-dependencies]` `automation`, mirrored in `requirements.txt`)
+- setuptools (`pyproject.toml`: `[build-system]` and the `[project]` metadata; there is no `setup.py`), `src/` layout (`[tool.setuptools.packages.find] where = ["src"]`)
+- The version is in two places that move together: `pyproject.toml` `[project] version` and `src/playtester/__init__.py` `__version__`
 - GitHub Actions: `.github/workflows/build.yml` (job `test`; push to main, every PR), `.github/workflows/release.yml` (on release created, `python -m build`)
 
 ## Build and run commands
@@ -134,8 +135,8 @@ README.md, USER_GUIDE.md, QUICKSTART.md, CHANGELOG.md, CONTRIBUTING.md, CODE_OF_
 - Update `README.md` / `docs/API_REFERENCE.md` / `docs/IMPLEMENTATION_PLAN.md`
   when public behaviour or the API changes (per `CONTRIBUTING.md`), and add a
   `CHANGELOG.md` entry.
-- Keep `requirements.txt` and `setup.py` `extras_require["automation"]` in sync;
-  keep `install_requires` empty.
+- Keep `requirements.txt` and the `automation` extra in `pyproject.toml` in sync;
+  keep `dependencies` empty.
 - Run the `py_compile` check before pushing.
 
 **Don't:**

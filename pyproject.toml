@@ -1,3 +1,60 @@
 [build-system]
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "playtester"
+version = "0.2.0"
+description = "Game playtesting by parallel AI agents, and an AI game automation framework"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Daniel McCoy Stephenson" }]
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Testing",
+]
+# The agent playtest kit (pt, playtester.harness, playtester.agents) is
+# standard-library Python. What it needs besides is system software, which
+# pip cannot install: Xvfb, xdotool, ImageMagick (import), and Mesa's
+# llvmpipe for games that render with OpenGL. On Debian/Ubuntu:
+#   sudo apt-get install xvfb xdotool imagemagick libgl1-mesa-dri
+dependencies = []
+
+[project.optional-dependencies]
+# The experimental screenshot automation framework (GameAutomator and
+# friends): pip install "playtester[automation]". pynput pulls in evdev,
+# which builds a C extension on Linux. Mirrored in requirements.txt.
+automation = [
+    "pillow>=10.0.0",
+    "pyautogui>=0.9.54",
+    "pynput>=1.7.6",
+]
+
+[project.scripts]
+pt = "playtester.harness.cli:main"
+playtester = "playtester.harness.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Preponderous-Software/playtester"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+playtester = ["data/*/*", "data/*/*/*"]
