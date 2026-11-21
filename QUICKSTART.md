@@ -141,7 +141,7 @@ print(f"Executed actions: {executor.get_execution_history()}")
 playtester/
 ├── README.md              # Main documentation
 ├── requirements.txt      # The automation extra's dependencies
-├── setup.py             # Package configuration
+├── pyproject.toml       # Package configuration
 ├── docs/                # Detailed documentation
 │   ├── README.md        # Full usage guide
 │   ├── API_REFERENCE.md # API documentation

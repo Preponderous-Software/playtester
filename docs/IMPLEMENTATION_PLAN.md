@@ -72,7 +72,7 @@ Use a local open-source vision-language model:
    - Good few-shot learning capabilities
 
 **Implementation Steps**:
-1. Add model dependencies to the `automation` extra (`setup.py`, mirrored in `requirements.txt`)
+1. Add model dependencies to the `automation` extra (`pyproject.toml`, mirrored in `requirements.txt`)
 2. Create model loader and initialization code
 3. Implement image preprocessing for model input
 4. Create prompt templates for game decision-making
