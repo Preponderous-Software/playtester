@@ -68,6 +68,8 @@ The profiles start a game you have cloned and built; pass its checkout with `--g
 
 Games on the Strata engine can also run on the **Strata driver**, headless with no Xvfb, xdotool or ImageMagick, and with `pt start --clock stepped` a world that waits for the agent: `kindling-strata`, `atman-strata`, `steading-strata`, `orrery-strata` and `sisyphus-strata`. See [Drivers](docs/PROFILES.md#drivers) and [The Strata driver](docs/AGENT_PLAYTESTING.md#the-strata-driver).
 
+Windows-only games can run on the **Windows driver**, from WSL2 on the real Windows desktop (one session at a time, under a desktop lock, since it takes over the screen): `warband`, for Mount&Blade: Warband and its modules, with probe lines a module's test build shows on screen, read by OCR ([PROBE_LINES.md](docs/PROBE_LINES.md)), and errors from the game's `rgl_log.txt` after it exits as the probe. See [The Windows driver](docs/AGENT_PLAYTESTING.md#the-windows-driver).
+
 **Beyond Nations** (`pt start --profile beyond-nations --game-dir ~/beyond-nations`):
 
 ```bash

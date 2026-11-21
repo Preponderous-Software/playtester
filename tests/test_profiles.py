@@ -12,7 +12,7 @@ from playtester.harness import cli
 from playtester.harness import profile as profiles
 
 BUNDLED = ("atman", "atman-strata", "beyond-nations", "demo", "kindling", "kindling-strata", "orrery-strata", "sisyphus-strata",
-           "steading-strata")
+           "steading-strata", "warband")
 
 
 class ProfileTest(unittest.TestCase):
