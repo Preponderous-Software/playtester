@@ -37,9 +37,170 @@
     "driver": {
       "enum": [
         "x11",
-        "strata"
+        "strata",
+        "windows"
       ],
-      "description": "How the harness runs and drives the game: x11 (default) gives it its own Xvfb and drives it with xdotool; strata runs a Strata game headless and drives it through its drive channel (Strata ABI 1.12, STRATA_DRIVE), with no X server"
+      "description": "How the harness runs and drives the game: x11 (default) gives it its own Xvfb and drives it with xdotool; strata runs a Strata game headless and drives it through its drive channel (Strata ABI 1.12, STRATA_DRIVE), with no X server; windows runs a Windows game on the real desktop of the machine hosting WSL2 and drives it with real input, one session at a time (docs/PROFILES.md#drivers)"
+    },
+    "windows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "process"
+      ],
+      "description": "The Windows driver's settings (driver windows only). Strings may use the launch placeholders and {module}",
+      "properties": {
+        "process": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The game's process name, without .exe (Get-Process -Name)"
+        },
+        "min_width": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The game's window is at least this wide (smaller windows of the process are its launcher)"
+        },
+        "launcher": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "title_regex": {
+              "type": "string",
+              "description": "The launcher dialog's title (default any)"
+            },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Keys that start the game from the launcher once it is in front (default Return)"
+            },
+            "attempts": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "click": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "Where the launcher's start button is, as fractions [x, y] of its client area: clicked when Windows will not bring the launcher to the front for keys (a click both activates it and starts the game)"
+            }
+          }
+        },
+        "module": {
+          "type": "string",
+          "description": "Default for {module} (pt start --module or PT_MODULE override it)"
+        },
+        "registry": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "name",
+              "value"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "pattern": "^(HKCU|HKLM)\\\\"
+              },
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Values pt start sets before launching (and pt stop puts back), e.g. the module the launcher picks"
+        },
+        "log": {
+          "type": "string",
+          "description": "The game's log file (WSL path); pt reads it into game.log and the log probe (windows_log)"
+        },
+        "log_prefix": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Log lines with this become probe events (default PTPROBE)"
+        },
+        "probe_format": {
+          "type": "string",
+          "enum": [
+            "keyvalue",
+            "ptline"
+          ],
+          "description": "How probe lines are written: keyvalue (default; PREFIX TYPE key=value ... in the log, windows_log) or ptline (the short checked lines of docs/PROBE_LINES.md, read from the log and by OCR)"
+        },
+        "ocr": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Read probe lines off the screen (windows_ocr; needs tesseract on PATH and probe_format ptline): pt start runs a reader that captures the region every interval_sec, keeps the probe colour and runs OCR",
+          "properties": {
+            "rect": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "minItems": 4,
+              "maxItems": 4,
+              "description": "The region to read, as fractions [left, top, right, bottom] of the game window's client area"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "The probe lines' colour (#RRGGBB)"
+            },
+            "tolerance": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255,
+              "description": "Largest channel difference from color still kept (default 90)"
+            },
+            "scale": {
+              "type": "number",
+              "minimum": 0.25,
+              "maximum": 4,
+              "description": "Scale the region by this before OCR (default 1)"
+            },
+            "interval_sec": {
+              "type": "number",
+              "minimum": 0.2,
+              "description": "Seconds between captures (default 1.5)"
+            },
+            "psm": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 13,
+              "description": "tesseract page segmentation mode (default 6, a block of text)"
+            },
+            "whitelist": {
+              "type": "string",
+              "description": "Characters tesseract may read (default PTSMEB0123456789-)"
+            }
+          }
+        },
+        "log_error_patterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Regular expressions; matching log lines become log_error events"
+        },
+        "close_timeout_sec": {
+          "type": "number",
+          "minimum": 0,
+          "description": "pt stop waits this long after asking the game to close before killing it (default 15)"
+        }
+      }
     },
     "build": {
       "type": "object",

@@ -16,9 +16,13 @@ Everything a session owns lives in ``$PT_ROOT/$PT_SESSION``::
     display, game.pid, xvfb.pid, window   while running (X11 driver)
     drive.jsonl       every drive-channel line, both ways (Strata driver)
     relay.log, relay.pid, drive.sock, control.sock   while running (Strata driver)
+    desktop.jsonl     every line to and from the desktop helper (Windows driver)
+    relay.log, relay.pid, control.sock   while running (Windows driver)
 
 The Strata driver (``"driver": "strata"``, strata_driver.py) starts no Xvfb:
 the game renders headless and takes its input through its drive channel.
+The Windows driver (``"driver": "windows"``, windows_driver.py) drives a game
+on the real Windows desktop from WSL2, one session at a time (a desktop lock).
 
 A pid file holds the pid and the process's start time (``PID START``, the
 start time being field 22 of ``/proc/PID/stat``). Before signalling a pid the
@@ -44,6 +48,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from . import inputs
 from . import profile as profiles
 from . import strata_driver
+from . import windows_session
 from . import xdo
 
 SESSION_NAME = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -194,7 +199,9 @@ class Session:
         if name == "xvfb":
             return ["Xvfb"]
         if name == "relay":
-            return ["strata_relay"]
+            return ["strata_relay", "windows_relay"]
+        if name == "ocr":
+            return ["windows_ocr"]
         expected = []
         command = self.info().get("command")
         if isinstance(command, list) and command:
@@ -217,6 +224,8 @@ class Session:
         return self._read("display")
 
     def game_alive(self) -> bool:
+        if self.info().get("driver") == "windows":
+            return windows_session.game_alive(self)
         return pid_alive(self._pid("game"))
 
     def env(self) -> Dict[str, str]:
@@ -269,6 +278,13 @@ class Session:
     def input(self) -> Any:
         """The game's input, screenshots and clock, for whichever driver started it."""
         self.need_game()
+        if self.driver == "windows":
+            inp = windows_session.make_input(self)
+            try:
+                inp.focus()
+            except inputs.InputError as e:
+                raise HarnessError(str(e))
+            return inp
         if self.driver == "strata":
             info = self.info()
             return inputs.StrataInput(self.channel(), info.get("clock", "free"),
@@ -315,14 +331,25 @@ class Session:
     def start(self, profile: Dict[str, Any], game_dir: str, seed: Optional[str], extra_args: List[str],
               use_probe: bool = True, width: Optional[int] = None, height: Optional[int] = None,
               lp_threads: Optional[str] = None, clock: Optional[str] = None,
-              step: Optional[float] = None) -> Dict[str, Any]:
+              step: Optional[float] = None, attach: bool = False, module: Optional[str] = None) -> Dict[str, Any]:
         """Xvfb on a free display, then the game; waits for its window (and first state.json).
 
         With ``"driver": "strata"`` there is no Xvfb: see ``_start_strata``.
+        With ``"driver": "windows"`` the game runs on the Windows desktop:
+        see ``windows_session.start`` (``attach`` drives a copy that is
+        already running; ``module`` fills the profile's ``{module}``).
         On any failure prints why (the end of the game's log), stops whatever
         was started and raises HarnessError.
         """
-        if (profile.get("driver") or "x11") == "strata":
+        driver = profile.get("driver") or "x11"
+        if driver != "windows" and (attach or module):
+            raise HarnessError("--attach and --module need a profile with \"driver\": \"windows\"")
+        if driver == "windows":
+            if clock not in (None, "free"):
+                raise HarnessError("--clock %s needs the Strata driver; a Windows game runs in real time" % clock)
+            return windows_session.start(self, profile, game_dir, extra_args, use_probe, width, height, attach,
+                                         module)
+        if driver == "strata":
             return self._start_strata(profile, game_dir, seed, extra_args, use_probe, width, height, lp_threads,
                                       clock or "free", step)
         if clock not in (None, "free"):
@@ -539,6 +566,8 @@ class Session:
         Only signals a process that is still the one this session started
         (see ``same_process``); a stale pid file is just removed.
         """
+        if self.info().get("driver") == "windows":
+            windows_session.stop(self)
         if self.info().get("driver") == "strata" and self.game_alive():
             self._quit_strata()
         for name, grace in (("game", 5.0), ("xvfb", 3.0), ("relay", 3.0)):
@@ -572,6 +601,8 @@ class Session:
             time.sleep(0.1)
 
     def status(self) -> Dict[str, Any]:
+        if self.info().get("driver") == "windows":
+            return windows_session.status(self)
         game, xvfb = self._pid("game"), self._pid("xvfb")
         info = {"session": self.name, "running": self.game_alive(), "gamePid": game if pid_alive(game) else None,
                 "xvfbPid": xvfb if pid_alive(xvfb) else None}  # type: Dict[str, Any]
