@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "playtester"
-version = "0.2.0"
+version = "0.2.1.dev0"
 description = "Game playtesting by parallel AI agents, and an AI game automation framework"
 readme = "README.md"
 license = { text = "MIT" }
